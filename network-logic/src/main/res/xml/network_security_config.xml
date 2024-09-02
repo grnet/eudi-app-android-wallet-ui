@@ -15,5 +15,12 @@
   -->
 
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false" />
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="@raw/key"/>
+            <certificates src="@raw/cert"/>
+            <certificates src="@raw/pidissuercaut01"/>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
 </network-security-config>
