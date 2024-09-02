@@ -36,7 +36,7 @@ internal class WalletCoreConfigImpl(
         const val OPENID4VP_VERIFIER_API_URI = "https://dev.verifier.eudiw.dev"
         const val OPENID4VP_VERIFIER_LEGAL_NAME = "EUDI Remote Verifier"
         const val OPENID4VP_VERIFIER_CLIENT_ID = "Verifier"
-        const val VCI_ISSUER_URL = "https://dev.issuer.eudiw.dev"
+        const val VCI_ISSUER_URL = "https://192.168.134.214:5000"
         const val VCI_CLIENT_ID = "wallet-dev"
         const val AUTHENTICATION_REQUIRED = false
     }
