@@ -47,6 +47,10 @@ fun provideEudiWallet(
     walletCoreLogController: WalletCoreLogController
 ): EudiWallet = EudiWallet(context, walletCoreConfig.config) {
     withLogger(walletCoreLogController)
+    // Custom HttpClient
+    withKtorHttpClientFactory {
+        ProvideKtorHttpClient.client()
+    }
 }
 
 @Single
