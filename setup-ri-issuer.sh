@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 if [ "$1" == "" ]; then
     echo "Usage:"
@@ -8,9 +9,11 @@ if [ "$1" == "" ]; then
     exit
 fi
 
+echo "Copying certificate from: $1"
 mkdir -p network-logic/src/main/res/raw/
 cp $1/cert.pem network-logic/src/main/res/raw/cert.pem
 
+echo "Setting issuer URL..."
 if [ "$2" == "" ]; then
     ISSUER_HOST=$($1/resolve-ip.sh)
 else
