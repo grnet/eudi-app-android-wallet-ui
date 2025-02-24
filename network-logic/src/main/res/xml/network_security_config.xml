@@ -18,7 +18,9 @@
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src='@raw/cert'/>
+            <certificates src='@raw/cert_snf_74864_ok_kno_grnetcloud_net'/>
             <certificates src='@raw/pidissuercaut01'/>
+            <certificates src='@raw/iaca'/>
             <certificates src='system'/>
         </trust-anchors>
     </base-config>
