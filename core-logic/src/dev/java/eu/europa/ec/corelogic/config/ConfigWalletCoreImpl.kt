@@ -79,7 +79,12 @@ internal class WalletCoreConfigImpl(
                         withUseDPoPIfSupported(true)
                     }
 
-                    configureReaderTrustStore(context, R.raw.eudi_pid_issuer_ut)
+                    configureReaderTrustStore(
+                        context,
+                        R.raw.eudi_pid_issuer_ut,
+                        // Updated certificates
+                        R.raw.pidissuerca02_ut,
+                    )
                 }
             }
             return _config!!
