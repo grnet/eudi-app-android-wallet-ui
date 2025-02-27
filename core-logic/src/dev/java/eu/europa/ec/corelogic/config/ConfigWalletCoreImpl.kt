@@ -31,7 +31,7 @@ internal class WalletCoreConfigImpl(
 ) : WalletCoreConfig {
 
     private companion object {
-        const val VCI_ISSUER_URL = "https://dev.issuer.eudiw.dev"
+        const val VCI_ISSUER_URL = "https://snf-895798.vm.okeanos.grnet.gr:5000"
         const val VCI_CLIENT_ID = "wallet-dev"
         const val AUTHENTICATION_REQUIRED = false
     }
