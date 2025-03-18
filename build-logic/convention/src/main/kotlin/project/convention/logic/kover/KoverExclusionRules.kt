@@ -122,6 +122,16 @@ sealed interface KoverExclusionRules {
             )
     }
 
+    object EbsiLogic : LogicModule {
+        override val classes: List<String>
+            get() = commonClasses
+
+        override val packages: List<String>
+            get() = commonPackages + listOf(
+                "eu.europa.ec.ebsilogic"
+            )
+    }
+
     object CommonFeature : FeatureModule {
         override val classes: List<String>
             get() = commonClasses + listOf(

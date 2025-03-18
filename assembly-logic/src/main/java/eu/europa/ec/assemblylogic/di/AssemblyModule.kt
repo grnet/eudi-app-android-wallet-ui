@@ -31,6 +31,7 @@ import eu.europa.ec.resourceslogic.di.LogicResourceModule
 import eu.europa.ec.startupfeature.di.FeatureStartupModule
 import eu.europa.ec.storagelogic.di.LogicStorageModule
 import eu.europa.ec.uilogic.di.LogicUiModule
+import eu.europa.ec.ebsilogic.di.LogicEbsiModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.KoinApplication
@@ -48,6 +49,7 @@ private val assembledModules = listOf(
     LogicAuthenticationModule().module,
     LogicCoreModule().module,
     LogicStorageModule().module,
+    LogicEbsiModule().module,
 
     // Feature Modules
     FeatureCommonModule().module,
