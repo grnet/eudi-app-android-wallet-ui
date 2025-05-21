@@ -8,7 +8,7 @@ aiming to ease local test deployments.
    directory `ISSUER_DIR`. Install the issuer following the instructions
    in that repository.
 
-2. Switch to branch: `local-deploy-v2`
+2. Switch to branch: `local-deploy-v3`
 
 3. Run: `./setup-ri-issuer.sh ISSUER_DIR`
 
