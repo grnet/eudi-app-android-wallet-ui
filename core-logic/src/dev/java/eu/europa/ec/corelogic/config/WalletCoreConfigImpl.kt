@@ -175,6 +175,29 @@ internal class WalletCoreConfigImpl : WalletCoreConfig {
                     )
                     .build(),
                 order = 1
+            ),
+            VciConfig(
+                issuerUrl = "https://snf-74864.ok-kno.grnetcloud.net:5602",
+                config = OpenId4VciManager.Config.Builder()
+                    .withClientAuthenticationType(
+                        OpenId4VciManager.ClientAuthenticationType.AttestationBased(
+                            clientId = "eudiw-abca"
+                        )
+                    )
+                    .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
+                    .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
+                    .withDPopConfig(DPopConfig.Default)
+                    .withSupportedCredentialReusePolicies(
+                        CredentialReusePolicies.Supported(
+                            policyTypes = setOf(
+                                EudiReusePolicyType.RotatingBatch,
+                                EudiReusePolicyType.OnceOnly,
+                                EudiReusePolicyType.LimitedTime,
+                            )
+                        )
+                    )
+                    .build(),
+                order = 2
             )
         )
 
