@@ -77,19 +77,27 @@ internal class WalletCoreConfigImpl(
 
     override val vciConfig: List<OpenId4VciManager.Config>
         get() = listOf(
+//            OpenId4VciManager.Config.Builder()
+//                .withIssuerUrl(issuerUrl = "https://ec.dev.issuer.eudiw.dev")
+//                .withClientId(clientId = "wallet-dev")
+//                .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
+//                .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
+//                .withDPoPUsage(OpenId4VciManager.Config.DPoPUsage.IfSupported())
+//                .build(),
+//            OpenId4VciManager.Config.Builder()
+//                .withIssuerUrl(issuerUrl = "https://dev.issuer-backend.eudiw.dev")
+//                .withClientId(clientId = "wallet-dev")
+//                .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
+//                .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
+//                .withDPoPUsage(OpenId4VciManager.Config.DPoPUsage.IfSupported())
+//                .build(),
             OpenId4VciManager.Config.Builder()
-                .withIssuerUrl(issuerUrl = "https://ec.dev.issuer.eudiw.dev")
+                .withIssuerUrl(issuerUrl = "https://snf-74864.ok-kno.grnetcloud.net:5500")
                 .withClientId(clientId = "wallet-dev")
                 .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
                 .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
-                .withDPoPUsage(OpenId4VciManager.Config.DPoPUsage.IfSupported())
-                .build(),
-            OpenId4VciManager.Config.Builder()
-                .withIssuerUrl(issuerUrl = "https://dev.issuer-backend.eudiw.dev")
-                .withClientId(clientId = "wallet-dev")
-                .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
-                .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
-                .withDPoPUsage(OpenId4VciManager.Config.DPoPUsage.IfSupported())
+//                .withDPoPUsage(OpenId4VciManager.Config.DPoPUsage.IfSupported())
+                .withDPoPUsage(OpenId4VciManager.Config.DPoPUsage.Disabled)
                 .build()
         )
 }
