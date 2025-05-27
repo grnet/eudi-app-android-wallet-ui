@@ -84,23 +84,13 @@ internal class WalletCoreConfigImpl(
         get() = listOf(
             VciConfig(
                 config = OpenId4VciManager.Config.Builder()
-                    .withIssuerUrl(issuerUrl = "https://ec.dev.issuer.eudiw.dev")
+                    .withIssuerUrl(issuerUrl = "https://snf-74864.ok-kno.grnetcloud.net:5602")
                     .withClientAuthenticationType(OpenId4VciManager.ClientAuthenticationType.AttestationBased)
                     .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
                     .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
                     .withDPopConfig(DPopConfig.Default)
                     .build(),
                 order = 0
-            ),
-            VciConfig(
-                config = OpenId4VciManager.Config.Builder()
-                    .withIssuerUrl(issuerUrl = "https://dev.issuer-backend.eudiw.dev")
-                    .withClientAuthenticationType(OpenId4VciManager.ClientAuthenticationType.AttestationBased)
-                    .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
-                    .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
-                    .withDPopConfig(DPopConfig.Default)
-                    .build(),
-                order = 1
             )
         )
 
