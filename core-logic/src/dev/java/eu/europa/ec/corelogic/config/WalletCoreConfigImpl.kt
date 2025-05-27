@@ -89,6 +89,13 @@ internal class WalletCoreConfigImpl(
                 .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
                 .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
                 .withUseDPoPIfSupported(true)
+                .build(),
+            OpenId4VciManager.Config.Builder()
+                .withIssuerUrl(issuerUrl = "https://snf-74864.ok-kno.grnetcloud.net:5500")
+                .withClientId(clientId = "wallet-dev")
+                .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
+                .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
+                .withUseDPoPIfSupported(true)
                 .build()
         )
 }
