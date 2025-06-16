@@ -44,7 +44,7 @@ android {
 
     defaultConfig {
         // App name
-        manifestPlaceholders["appName"] = "EUDI Wallet"
+        manifestPlaceholders["appName"] = "EUDI Wallet v4"
     }
 }
 
