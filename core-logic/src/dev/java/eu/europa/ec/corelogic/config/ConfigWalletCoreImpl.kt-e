@@ -31,7 +31,7 @@ internal class WalletCoreConfigImpl(
 ) : WalletCoreConfig {
 
     private companion object {
-        const val VCI_ISSUER_URL = "https://snf-74864.ok-kno.grnetcloud.net:8000"
+        const val VCI_ISSUER_URL = "https://:5000"
         const val OPENID4VP_VERIFIER_API_URI = "https://snf-898225.vm.okeanos.grnet.gr/"
         const val VCI_CLIENT_ID = "wallet-dev"
         const val AUTHENTICATION_REQUIRED = false
@@ -80,22 +80,7 @@ internal class WalletCoreConfigImpl(
                         withUseDPoPIfSupported(true)
                     }
 
-                    configureReaderTrustStore(
-                        context,
-                        R.raw.eudi_pid_issuer_ut,
-                        // Updated certificates
-                        R.raw.pidissuerca02_ut,
-//                        // https://github.com/eu-digital-identity-wallet/eudi-srv-web-verifier-endpoint-23220-4-kt/issues/256
-//                        // Certificate generated from: https://registry.serviceproviders.eudiw.dev/
-//                        R.raw.grnet
-                        // GRNET IACA
-                        R.raw.root_ca_grnet, R.raw.iaca,
-                        // EBSI RP
-                        R.raw.ebsi_rp, R.raw.ebsi_rp_2,
-//                        // https://github.com/eu-digital-identity-wallet/eudi-srv-web-verifier-endpoint-23220-4-kt/issues/256
-//                        // Certificate generated from: https://registry.serviceproviders.eudiw.dev/
-//                        R.raw.grnet
-                    )
+                    configureReaderTrustStore(context, R.raw.eudi_pid_issuer_ut)
                 }
             }
             return _config!!
