@@ -40,7 +40,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "eu.europa.ec.euidi.grnet2"
+        applicationId = "eu.europa.ec.euidi.grnet.ebsi"
         versionCode = 1
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
