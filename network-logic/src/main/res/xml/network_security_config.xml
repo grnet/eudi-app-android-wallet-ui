@@ -18,6 +18,7 @@
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src='@raw/cert'/>
+            <certificates src='@raw/cert2'/>
             <certificates src='@raw/cert_snf_74864_ok_kno_grnetcloud_net'/>
             <certificates src='@raw/ebsi_cert_snf_74864_ok_kno_grnetcloud_net'/>
             <certificates src='@raw/cert_snf_74864_ok_kno_grnetcloud_net_letsencrypt'/>
