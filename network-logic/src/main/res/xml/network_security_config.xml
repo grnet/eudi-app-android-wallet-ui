@@ -24,6 +24,8 @@
             <certificates src='@raw/pidissuercaut01'/>
             <certificates src='@raw/root_ca_grnet'/>
             <certificates src='@raw/iaca'/>
+            <certificates src='@raw/ebsi_rp'/>
+            <certificates src='@raw/ebsi_rp_2'/>
             <certificates src='system'/>
         </trust-anchors>
     </base-config>

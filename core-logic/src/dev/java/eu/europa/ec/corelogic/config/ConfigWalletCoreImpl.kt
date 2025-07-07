@@ -90,6 +90,8 @@ internal class WalletCoreConfigImpl(
                         R.raw.czech_root,
                         // GRNET IACA
                         R.raw.root_ca_grnet, R.raw.iaca,
+                        // EBSI RP
+                        R.raw.ebsi_rp, R.raw.ebsi_rp_2,
 //                        // https://github.com/eu-digital-identity-wallet/eudi-srv-web-verifier-endpoint-23220-4-kt/issues/256
 //                        // Certificate generated from: https://registry.serviceproviders.eudiw.dev/
 //                        R.raw.grnet
