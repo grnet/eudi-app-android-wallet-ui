@@ -131,11 +131,11 @@ enum class AppIconKey(
         contentDescriptionId = R.string.content_description_id_stroke_icon,
     ),
     LogoIcon(
-        resourceId = R.drawable.ic_logo_icon,
+        resourceId = R.drawable.issuer_placeholder,
         contentDescriptionId = R.string.content_description_logo_icon,
     ),
     LogoIconAndText(
-        resourceId = R.drawable.ic_logo_icon_and_text,
+        resourceId = R.drawable.issuer_placeholder,
         contentDescriptionId = R.string.content_description_logo_icon_and_text,
     ),
     KeyboardArrowDown(
