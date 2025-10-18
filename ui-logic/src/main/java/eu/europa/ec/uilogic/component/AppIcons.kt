@@ -138,13 +138,13 @@ object AppIcons {
     )
 
     val LogoFull: IconDataUi = IconDataUi(
-        resourceId = R.drawable.ic_logo_full,
+        resourceId = R.drawable.issuer_placeholder,
         contentDescriptionId = R.string.content_description_logo_full_icon,
         imageVector = null
     )
 
     val LogoPlain: IconDataUi = IconDataUi(
-        resourceId = R.drawable.ic_logo_plain,
+        resourceId = R.drawable.issuer_placeholder,
         contentDescriptionId = R.string.content_description_logo_plain_icon,
         imageVector = null
     )
