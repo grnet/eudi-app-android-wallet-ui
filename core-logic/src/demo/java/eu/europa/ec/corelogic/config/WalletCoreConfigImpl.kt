@@ -71,6 +71,9 @@ internal class WalletCoreConfigImpl(
                         R.raw.pidissuerca02_ut,
                         R.raw.dc4eu,
                         R.raw.r45_staging
+                        // GRNET IACA
+                        // R.raw.root_ca_grnet,
+                        R.raw.iaca,
                     )
                 }
             }
