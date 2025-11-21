@@ -22,6 +22,7 @@ import eu.europa.ec.eudi.wallet.EudiWalletConfig
 import eu.europa.ec.eudi.wallet.issue.openid4vci.OpenId4VciManager
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.ClientIdScheme
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.Format
+import eu.europa.ec.eudi.wallet.transfer.openId4vp.PreregisteredVerifier
 import eu.europa.ec.resourceslogic.R
 import kotlin.time.Duration.Companion.seconds
 
@@ -96,7 +97,7 @@ internal class WalletCoreConfigImpl(
                 .withClientId(clientId = "wallet-dev")
                 .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
                 .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
-//                .withDPoPUsage(OpenId4VciManager.Config.DPoPUsage.IfSupported())
+                //.withDPoPUsage(OpenId4VciManager.Config.DPoPUsage.IfSupported())
                 .withDPoPUsage(OpenId4VciManager.Config.DPoPUsage.Disabled)
                 .build()
         )
