@@ -45,7 +45,17 @@ internal class WalletCoreConfigImpl(
                         withClientIdSchemes(
                             listOf(
                                 ClientIdScheme.X509SanDns,
-                                ClientIdScheme.X509Hash
+                                ClientIdScheme.X509Hash,
+                                ClientIdScheme.Preregistered(
+                                    preregisteredVerifiers =
+                                        listOf(
+                                            PreregisteredVerifier(
+                                                clientId = "Verifier",
+                                                legalName = "Verifier",
+                                                verifierApi = "https://snf-82771.ok-kno.grnetcloud.net:4200"
+                                            )
+                                        )
+                                )
                             )
                         )
                         withSchemes(
