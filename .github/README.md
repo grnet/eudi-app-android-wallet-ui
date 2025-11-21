@@ -4,13 +4,12 @@ aiming to ease local test deployments.
 ## Installation
 
 1. Clone the issuer fork
-   (https://github.com/gfour/eudi-srv-web-issuing-eudiw-py) to some
+   (https://github.com/grnet/eudi-srv-web-issuing-eudiw-py) to some
    directory `ISSUER_DIR`. Install the issuer following the instructions
-   in that repository.
+   in branch `local-deploy-snf-74864-draft-15` of that repository.
 
-2. Switch to branch: `local-deploy-v3`
-
-3. Run: `./setup-ri-issuer.sh ISSUER_DIR`
+2. In this repository, switch to branch `okeanos-deploy-v6` and run
+   `./setup-ri-issuer.sh ISSUER_DIR`
 
 4. Build the wallet application.
 
