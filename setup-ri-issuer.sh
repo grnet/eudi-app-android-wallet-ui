@@ -19,4 +19,4 @@ if [ "$2" == "" ]; then
 else
     ISSUER_HOST=$2
 fi
-sed -i -e 's/const val VCI_ISSUER_URL = ".*"/const val VCI_ISSUER_URL = "https:\/\/'${ISSUER_HOST}':5000"/g' core-logic/src/dev/java/eu/europa/ec/corelogic/config/ConfigWalletCoreImpl.kt
+sed -i -e 's/const val VCI_ISSUER_URL = ".*"/const val VCI_ISSUER_URL = "https:\/\/'${ISSUER_HOST}':5500"/g' core-logic/src/dev/java/eu/europa/ec/corelogic/config/ConfigWalletCoreImpl.kt
