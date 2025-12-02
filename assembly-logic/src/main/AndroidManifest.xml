@@ -163,6 +163,17 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
+                    android:host="${haipVciHost}"
+                    android:scheme="${haipVciScheme}" />
+
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
                     android:host="${openId4VciAuthorizationHost}"
                     android:scheme="${openId4VciAuthorizationScheme}" />
 

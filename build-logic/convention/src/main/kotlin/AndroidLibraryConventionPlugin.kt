@@ -52,8 +52,14 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
             val openId4VpScheme = "openid4vp"
             val openid4VpHost = "*"
 
+            val haipVpScheme = "haip-vp"
+            val haipVpHost = "*"
+
             val credentialOfferScheme = "openid-credential-offer"
             val credentialOfferHost = "*"
+
+            val haipVciScheme = "haip-vci"
+            val haipVciHost = "*"
 
             val openId4VciAuthorizationScheme = "eu.europa.ec.euidi"
             val openId4VciAuthorizationHost = "authorization"
@@ -89,7 +95,9 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                     addConfigField("EUDI_OPENID4VP_SCHEME", eudiOpenId4VpScheme)
                     addConfigField("MDOC_OPENID4VP_SCHEME", mdocOpenId4VpScheme)
                     addConfigField("OPENID4VP_SCHEME", openId4VpScheme)
+                    addConfigField("HAIP_VP_SCHEME", haipVpScheme)
                     addConfigField("CREDENTIAL_OFFER_SCHEME", credentialOfferScheme)
+                    addConfigField("HAIP_VCI_SCHEME", haipVciScheme)
                     addConfigField("ISSUE_AUTHORIZATION_SCHEME", openId4VciAuthorizationScheme)
                     addConfigField("ISSUE_AUTHORIZATION_HOST", openId4VciAuthorizationHost)
                     addConfigField(
@@ -112,10 +120,16 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                     manifestPlaceholders["mdocOpenid4vpHost"] = mdocOpenid4VpHost
                     manifestPlaceholders["openid4vpScheme"] = openId4VpScheme
                     manifestPlaceholders["openid4vpHost"] = openid4VpHost
+                    manifestPlaceholders["haipVpScheme"] = haipVpScheme
+                    manifestPlaceholders["haipVpHost"] = haipVpHost
 
                     // Manifest placeholders used for OpenId4VCI
                     manifestPlaceholders["credentialOfferHost"] = credentialOfferHost
                     manifestPlaceholders["credentialOfferScheme"] = credentialOfferScheme
+
+                    // Manifest placeholders used for HAIP (VCI)
+                    manifestPlaceholders["haipVciHost"] = haipVciHost
+                    manifestPlaceholders["haipVciScheme"] = haipVciScheme
 
                     // Manifest placeholders used for OpenId4VCI Authorization
                     manifestPlaceholders["openId4VciAuthorizationScheme"] =
