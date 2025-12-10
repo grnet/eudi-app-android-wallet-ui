@@ -81,12 +81,12 @@ internal class WalletCoreConfigImpl(
     override val vciConfig: List<OpenId4VciManager.Config>
         get() = listOf(
             OpenId4VciManager.Config.Builder()
-                .withIssuerUrl(issuerUrl = "https://snf-74864.ok-kno.grnetcloud.net:5500")
-                .withClientId(clientId = "wallet-dev")
-//                .withClientAuthenticationType(OpenId4VciManager.ClientAuthenticationType.AttestationBased)
+                .withIssuerUrl(issuerUrl = "https://snf-74864.ok-kno.grnetcloud.net:5602")
+                .withClientAuthenticationType(OpenId4VciManager.ClientAuthenticationType.AttestationBased)
+//                .withClientId(clientId = "wallet-dev")
                 .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
                 .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
-                //.withDPoPUsage(OpenId4VciManager.Config.DPoPUsage.IfSupported())
+                .withDPoPUsage(OpenId4VciManager.Config.DPoPUsage.IfSupported())
                 .withDPoPUsage(OpenId4VciManager.Config.DPoPUsage.Disabled)
                 .build()
         )
