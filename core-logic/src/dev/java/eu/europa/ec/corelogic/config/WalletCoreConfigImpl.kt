@@ -80,7 +80,17 @@ internal class WalletCoreConfigImpl(
                         R.raw.pidissuerca02_nl,
                         R.raw.pidissuerca02_pt,
                         R.raw.pidissuerca02_ut,
-                        R.raw.dc4eu
+                        R.raw.dc4eu,
+                        R.raw.clr_labs_verifier_ca,
+                        // Norway
+                        R.raw.no_root,
+                        R.raw.no_intermediate,
+                        // A-SIT
+                        R.raw.a_sit_iaca,
+                        // Lissi
+                        R.raw.lissi_root,
+                        // ShareID
+                        R.raw.shareid,
                     )
                 }
             }
