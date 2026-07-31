@@ -223,5 +223,5 @@ internal class WalletCoreConfigImpl : WalletCoreConfig {
         )
 
     override val walletProviderHost: String
-        get() = "https://dev.wallet-provider.eudiw.dev"
+        get() = "http://demo.eudiw.grnet.gr:5606"
 }
