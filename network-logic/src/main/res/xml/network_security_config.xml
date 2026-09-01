@@ -25,4 +25,7 @@
             <certificates src='system'/>
         </trust-anchors>
     </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">demo.eudiw.grnet.gr</domain>
+    </domain-config>
 </network-security-config>
