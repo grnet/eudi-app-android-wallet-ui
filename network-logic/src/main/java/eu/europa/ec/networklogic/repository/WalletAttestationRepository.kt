@@ -30,6 +30,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import java.util.logging.Logger
 
 interface WalletAttestationRepository {
 
@@ -52,12 +53,15 @@ class WalletAttestationRepositoryImpl(
     private companion object {
         const val WALLET_INSTANCE_ATTESTATION_PATH = "/wallet-instance-attestation/jwk"
         const val WALLET_KEY_ATTESTATION_PATH = "/key-attestation/jwk-set"
+        val log: Logger = Logger.getLogger(this::class.java.name)
     }
 
     override suspend fun getWalletAttestation(
         baseUrl: String,
         keyInfo: JsonObject
     ): Result<String> = runCatching {
+        log.warning(baseUrl + WALLET_INSTANCE_ATTESTATION_PATH)
+        log.warning("\"jwk\": $keyInfo")
         httpClient.post(baseUrl + WALLET_INSTANCE_ATTESTATION_PATH) {
             contentType(ContentType.Application.Json)
             setBody(
@@ -76,6 +80,9 @@ class WalletAttestationRepositoryImpl(
         keys: List<JsonObject>,
         nonce: String?
     ): Result<String> = runCatching {
+        log.warning(baseUrl + WALLET_KEY_ATTESTATION_PATH)
+        log.warning("\"nonce\": ${nonce.orEmpty()}")
+        log.warning("\"jwkSet\": {\"keys\": $keys}")
         httpClient.post(baseUrl + WALLET_KEY_ATTESTATION_PATH) {
             contentType(ContentType.Application.Json)
             setBody(
