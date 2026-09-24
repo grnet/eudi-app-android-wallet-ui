@@ -47,6 +47,12 @@ fun AppIconAndText(
         verticalAlignment = Alignment.Top
     ) {
         WrapImage(iconData = appIconAndTextData.appIcon)
+        // GRNET fork: the gov.gr beta logo beside the EUDI one, as in the verifier
+        // UI's header. Its drawable is half the EUDI logo's height.
+        WrapImage(
+            iconData = AppIcons.GovGrBeta,
+            modifier = Modifier.align(Alignment.CenterVertically)
+        )
     }
 }
 

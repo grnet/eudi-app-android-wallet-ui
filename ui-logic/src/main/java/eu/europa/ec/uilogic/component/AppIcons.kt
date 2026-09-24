@@ -138,6 +138,11 @@ enum class AppIconKey(
         resourceId = R.drawable.ic_logo_icon_and_text,
         contentDescriptionId = R.string.content_description_logo_icon_and_text,
     ),
+    // GRNET fork: shown beside the EUDI logo, as in the verifier UI's header.
+    GovGrBeta(
+        resourceId = R.drawable.ic_govgr_beta,
+        contentDescriptionId = R.string.content_description_govgr_beta,
+    ),
     KeyboardArrowDown(
         contentDescriptionId = R.string.content_description_arrow_down_icon,
         imageVector = Icons.Default.KeyboardArrowDown,
@@ -342,6 +347,7 @@ object AppIcons {
     val IdStroke: IconDataUi = IconDataUi(AppIconKey.IdStroke)
     val LogoIcon: IconDataUi = IconDataUi(AppIconKey.LogoIcon)
     val LogoIconAndText: IconDataUi = IconDataUi(AppIconKey.LogoIconAndText)
+    val GovGrBeta: IconDataUi = IconDataUi(AppIconKey.GovGrBeta)
     val KeyboardArrowDown: IconDataUi = IconDataUi(AppIconKey.KeyboardArrowDown)
     val KeyboardArrowUp: IconDataUi = IconDataUi(AppIconKey.KeyboardArrowUp)
     val Visibility: IconDataUi = IconDataUi(AppIconKey.Visibility)

@@ -30,6 +30,24 @@ hardcoded:
 The defaults are upstream's own `dev` values, so a build without the properties
 behaves exactly like upstream's. The `demo` flavour is untouched.
 
+**gov.gr branding, beside the EUDI Wallet logo**, as in the verifier UI at
+[demo.eudiw.grnet.gr/verifier-ui](https://demo.eudiw.grnet.gr/verifier-ui/home),
+so the build is easy to tell apart from the reference app. Nothing replaces
+the EUDI logo:
+
+- the home header shows the gov.gr BETA logo beside the EUDI logo, at half its
+  height (`AppIconAndText`)
+- the splash shows it beneath the EUDI mark (`SplashScreen`)
+- the `dev` launcher icon carries the gov.gr emblem where upstream draws a red
+  "DEV" label (`resources-logic/src/dev/res/drawable/ic_launcher_foreground_grnet.xml`)
+
+The drawables are converted from the verifier UI's `assets/logo_govgr_pos.svg`
+with the paths, colours and fill rules unchanged, per the
+[gov.gr brand guide](https://guide.services.gov.gr/docs/brand): no distortion,
+cropping or recolouring. The launcher uses the emblem alone, as gov.gr does for
+its own favicon, inside the adaptive icon's 66dp safe zone and clear of the
+EUDI mark.
+
 The properties become `BuildConfig.ISSUER_URLS` and
 `BuildConfig.WALLET_PROVIDER_URL`, set in
 `build-logic/convention/src/main/kotlin/AndroidLibraryConventionPlugin.kt` and

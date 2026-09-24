@@ -23,6 +23,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -99,9 +100,19 @@ private fun Content(
                 enter = fadeIn(animationSpec = tween(state.logoAnimationDuration)),
                 exit = fadeOut(animationSpec = tween(state.logoAnimationDuration)),
             ) {
-                WrapImage(
-                    iconData = AppIcons.LogoIcon
-                )
+                // GRNET fork: the gov.gr beta logo beneath the EUDI mark, so the
+                // build is told apart from the reference app from its first screen.
+                // No extra spacing: the mark's own canvas leaves room beneath it.
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    WrapImage(
+                        iconData = AppIcons.LogoIcon
+                    )
+                    WrapImage(
+                        iconData = AppIcons.GovGrBeta
+                    )
+                }
             }
         }
     }
