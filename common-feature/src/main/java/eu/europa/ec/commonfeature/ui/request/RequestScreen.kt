@@ -49,6 +49,7 @@ import eu.europa.ec.commonfeature.util.TestTag
 import eu.europa.ec.corelogic.model.ClaimDomain
 import eu.europa.ec.corelogic.model.ClaimPathDomain
 import eu.europa.ec.corelogic.model.ClaimType
+import eu.europa.ec.corelogic.model.PresentationMatchDomain
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.theme.values.warning
 import eu.europa.ec.uilogic.component.AppIcons
@@ -115,22 +116,31 @@ fun RequestScreen(
         isLoading = state.isLoading,
         onBack = { viewModel.setEvent(Event.OnBack) },
         stickyBottom = { paddingValues ->
-            WrapStickyBottomContent(
-                modifier = Modifier
-                    .applyTestTag(TestTag.RequestScreen.BUTTON)
-                    .fillMaxWidth()
-                    .padding(paddingValues),
-                stickyBottomConfig = StickyBottomConfig(
-                    type = StickyBottomType.OneButton(
-                        config = ButtonConfig(
-                            type = ButtonType.PRIMARY,
-                            enabled = !state.isLoading && state.allowShare,
-                            onClick = { viewModel.setEvent(Event.StickyButtonPressed) }
+            Column(modifier = Modifier.fillMaxWidth()) {//here
+                TransactionDataNotice(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(paddingValues)
+                        .padding(bottom = SPACING_SMALL.dp),
+                    matches = state.requestDataUi.selectedCombination?.matches.orEmpty(),
+                )
+                WrapStickyBottomContent(
+                    modifier = Modifier
+                        .applyTestTag(TestTag.RequestScreen.BUTTON)
+                        .fillMaxWidth()
+                        .padding(paddingValues),
+                    stickyBottomConfig = StickyBottomConfig(
+                        type = StickyBottomType.OneButton(
+                            config = ButtonConfig(
+                                type = ButtonType.PRIMARY,
+                                enabled = !state.isLoading && state.allowShare,
+                                onClick = { viewModel.setEvent(Event.StickyButtonPressed) }
+                            )
                         )
                     )
-                )
-            ) {
-                Text(text = stringResource(R.string.request_sticky_button_text))
+                ) {
+                    Text(text = stringResource(R.string.request_sticky_button_text))
+                }
             }
         },
         contentErrorConfig = state.error
@@ -404,6 +414,26 @@ private fun RequestWarningNote(
     )
 }
 
+@Composable
+private fun TransactionDataNotice(
+    modifier: Modifier,
+    matches: List<PresentationMatchDomain>,
+) {
+    val pairs = matches.flatMap { it.transactionData }.flatMap { it.displayPairs }
+    if (pairs.isEmpty()) return
+
+    val summary = pairs.joinToString(separator = ", ") { (key, value) -> "$key: $value" }
+
+    SectionTitle(
+        modifier = modifier,
+        text = stringResource(R.string.request_transaction_data_notice, summary),
+        textConfig = TextConfig(
+            styleKey = TextStyleKey.BodySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = Int.MAX_VALUE,
+        ),
+    )
+}
 @Composable
 private fun SheetContent(
     sheetContent: RequestBottomSheetContent,

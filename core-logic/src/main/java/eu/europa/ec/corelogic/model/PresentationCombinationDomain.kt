@@ -17,6 +17,7 @@
 package eu.europa.ec.corelogic.model
 
 import eu.europa.ec.corelogic.extension.toClaimPath
+import eu.europa.ec.corelogic.extension.toPresentationTransactionDataDomain
 import eu.europa.ec.corelogic.model.PresentationMatchDomain.Companion.from
 import org.multipaz.presentment.CredentialMatchSourceIso18013
 import org.multipaz.presentment.CredentialMatchSourceOpenID4VP
@@ -34,6 +35,14 @@ data class PresentationCombinationDomain(
 )
 
 /**
+ * Here. One `transaction_data` entry attached to a match. For now, verifier's schema is not fixed
+ * (GenericJsonTransactionType declares no attributes).
+ */
+data class PresentationTransactionDataDomain(
+    val displayPairs: List<Pair<String, String>>,
+)
+
+/**
  * A flat, pure-domain snapshot of one Wallet Core SDK match — a candidate credential the verifier
  * asked for and the wallet can fulfil. Built via [from], so it holds no Wallet Core types; the raw
  * match stays in the controller.
@@ -48,6 +57,7 @@ data class PresentationMatchDomain(
     val credentialId: String,
     val queryId: String?,
     val requestedClaims: List<ClaimPathDomain>,
+    val transactionData: List<PresentationTransactionDataDomain> = emptyList(),
 ) {
     companion object {
         fun from(match: CredentialPresentmentSetOptionMemberMatch): PresentationMatchDomain {
@@ -59,6 +69,7 @@ data class PresentationMatchDomain(
                 requestedClaims = match.claims.keys.map { requestedClaim ->
                     requestedClaim.toClaimPath()
                 },
+                transactionData = match.transactionData.map { it.toPresentationTransactionDataDomain() },
             )
         }
     }
