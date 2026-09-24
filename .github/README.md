@@ -16,8 +16,8 @@ Upstream's own README is [at the root](../README.md).
 
 **Its own package.** `applicationId` is `eu.europa.ec.euidi.grnet`, so the build
 installs beside the official app. The `dev` flavour adds `.dev`, making it
-`eu.europa.ec.euidi.grnet.dev`. The app is named "EUDI Wallet GRNET". The code
-namespace is unchanged.
+`eu.europa.ec.euidi.grnet.dev`. The app is named "EUDI Wallet GR", short
+enough to fit under a launcher icon. The code namespace is unchanged.
 
 **The `dev` flavour's backend comes from build arguments** rather than being
 hardcoded:
@@ -35,18 +35,28 @@ behaves exactly like upstream's. The `demo` flavour is untouched.
 so the build is easy to tell apart from the reference app. Nothing replaces
 the EUDI logo:
 
-- the home header shows the gov.gr BETA logo beside the EUDI logo, at half its
-  height (`AppIconAndText`)
+- the home header shows the EUDI logo at 36dp and the gov.gr BETA logo beside
+  it at 44dp, the larger of the two (`AppIconAndText`)
 - the splash shows it beneath the EUDI mark (`SplashScreen`)
-- the `dev` launcher icon carries the gov.gr emblem where upstream draws a red
-  "DEV" label (`resources-logic/src/dev/res/drawable/ic_launcher_foreground_grnet.xml`)
+- the `dev` launcher icon follows the official Gov.gr Wallet icon's layout:
+  the same steep diagonal, the EUDI mark on white where that icon shows ID
+  cards, and the emblem of the Hellenic Republic, in white, on gov.gr blue in
+  the same position
+  (`resources-logic/src/dev/res/drawable/ic_launcher_*_grnet.xml`)
 
 The drawables are converted from the verifier UI's `assets/logo_govgr_pos.svg`
 with the paths, colours and fill rules unchanged, per the
 [gov.gr brand guide](https://guide.services.gov.gr/docs/brand): no distortion,
-cropping or recolouring. The launcher uses the emblem alone, as gov.gr does for
-its own favicon, inside the adaptive icon's 66dp safe zone and clear of the
-EUDI mark.
+cropping or recolouring.
+
+The launcher's emblem is taken unmodified from the gov.gr design system's logo
+for dark backgrounds,
+[govgr-logo.svg](https://guide.services.gov.gr/assets/files/govgr-logo-fa78bc13be038eeb3bf10456fd8ece3b.svg):
+white, with the cross painted solid. The logo for light backgrounds leaves the
+cross unpainted, which on blue shows as a blue hole. It sits on gov.gr blue,
+`#003476`. The icon's layers, bottom to top: white, the EUDI mark, the blue,
+the emblem. At the official icon's position the emblem reaches slightly past
+the adaptive icon's 66dp safe zone, though still inside a full circle mask.
 
 The properties become `BuildConfig.ISSUER_URLS` and
 `BuildConfig.WALLET_PROVIDER_URL`, set in

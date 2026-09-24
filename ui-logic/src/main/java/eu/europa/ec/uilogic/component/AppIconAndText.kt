@@ -18,9 +18,14 @@ package eu.europa.ec.uilogic.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModePreviews
@@ -46,15 +51,39 @@ fun AppIconAndText(
         ),
         verticalAlignment = Alignment.Top
     ) {
-        WrapImage(iconData = appIconAndTextData.appIcon)
-        // GRNET fork: the gov.gr beta logo beside the EUDI one, as in the verifier
-        // UI's header. Its drawable is half the EUDI logo's height.
+        // GRNET fork: the EUDI logo beside the gov.gr beta logo, gov.gr the larger
+        // of the two. Each is given a height, and its width from its drawable's own
+        // aspect ratio: ContentScale.Fit alone only ever scales down, so a logo
+        // asked to be taller than its drawable would stay at the drawable's size.
+        // 36 + 8 + 44dp tall makes a row about 266dp wide, which fits beside the
+        // home screen's menu button on a 360dp phone.
+        WrapImage(
+            iconData = appIconAndTextData.appIcon,
+            modifier = Modifier
+                .height(36.dp)
+                .aspectRatio(aspectRatioOf(appIconAndTextData.appIcon))
+                .align(Alignment.CenterVertically),
+            contentScale = ContentScale.Fit
+        )
         WrapImage(
             iconData = AppIcons.GovGrBeta,
-            modifier = Modifier.align(Alignment.CenterVertically)
+            modifier = Modifier
+                .height(44.dp)
+                .aspectRatio(aspectRatioOf(AppIcons.GovGrBeta))
+                .align(Alignment.CenterVertically),
+            contentScale = ContentScale.Fit
         )
     }
 }
+
+/** Width over height of the icon's drawable, as it declares itself; 1 if unknown. */
+@Composable
+private fun aspectRatioOf(iconData: IconDataUi): Float =
+    iconData.resourceId
+        ?.let { painterResource(it).intrinsicSize }
+        ?.takeIf { it.isSpecified && it.height > 0f }
+        ?.let { it.width / it.height }
+        ?: 1f
 
 @ThemeModePreviews
 @Composable

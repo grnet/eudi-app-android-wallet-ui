@@ -45,7 +45,7 @@ extensions.configure<LibraryExtension>("android") {
 
     defaultConfig {
         // App name
-        manifestPlaceholders["appName"] = "EUDI Wallet GRNET"
+        manifestPlaceholders["appName"] = "EUDI Wallet GR"
     }
 }
 
