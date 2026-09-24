@@ -40,7 +40,10 @@ android {
     }
 
     defaultConfig {
-        applicationId = "eu.europa.ec.euidi"
+        // GRNET fork: its own package, so the demo build installs beside the
+        // official app. Flavour suffixes still apply: the dev flavour is
+        // eu.europa.ec.euidi.grnet.dev. The code namespace below is unchanged.
+        applicationId = "eu.europa.ec.euidi.grnet"
         versionCode = 1
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
