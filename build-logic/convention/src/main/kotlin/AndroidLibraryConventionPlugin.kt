@@ -106,6 +106,26 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                     addConfigField("RQES_DEEPLINK", "$rqesScheme://$rqesHost$rqesPath")
                     addConfigField("RQES_DOC_RETRIEVAL_SCHEME", rqesDocRetrievalScheme)
 
+                    // GRNET fork: the dev flavour's backend, as build arguments.
+                    //   ./gradlew assembleDevRelease \
+                    //       -PissuerUrls=https://a.example/issuer,https://b.example \
+                    //       -PwalletProviderUrl=https://c.example/wallet-provider
+                    // issuerUrls is comma-separated, one VciConfig per entry. The
+                    // defaults are upstream's dev flavour values, so a build without
+                    // the properties behaves exactly as upstream's.
+                    addConfigField(
+                        "ISSUER_URLS",
+                        providers.gradleProperty("issuerUrls").getOrElse(
+                            "https://ec.dev.issuer.eudiw.dev,https://dev.issuer-backend.eudiw.dev"
+                        )
+                    )
+                    addConfigField(
+                        "WALLET_PROVIDER_URL",
+                        providers.gradleProperty("walletProviderUrl").getOrElse(
+                            "https://dev.wallet-provider.eudiw.dev"
+                        )
+                    )
+
                     // Manifest placeholders for Wallet deepLink
                     manifestPlaceholders["deepLinkScheme"] = walletScheme
                     manifestPlaceholders["deepLinkHost"] = walletHost

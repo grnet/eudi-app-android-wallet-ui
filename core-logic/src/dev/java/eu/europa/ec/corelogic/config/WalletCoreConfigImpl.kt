@@ -154,55 +154,39 @@ internal class WalletCoreConfigImpl(
             return _config!!
         }
 
+    // GRNET fork: the issuers come from the issuerUrls build argument, one
+    // VciConfig each, with the settings upstream uses for every entry. See
+    // AndroidLibraryConventionPlugin for the argument and its defaults.
     override val issuersConfig: List<VciConfig>
-        get() = listOf(
-            VciConfig(
-                issuerUrl = "https://ec.dev.issuer.eudiw.dev",
-                config = OpenId4VciManager.Config.Builder()
-                    .withClientAuthenticationType(
-                        OpenId4VciManager.ClientAuthenticationType.AttestationBased(
-                            clientId = "eudiw-abca"
-                        )
-                    )
-                    .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
-                    .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
-                    .withDPopConfig(DPopConfig.Default)
-                    .withSupportedCredentialReusePolicies(
-                        CredentialReusePolicies.Supported(
-                            policyTypes = setOf(
-                                EudiReusePolicyType.RotatingBatch,
-                                EudiReusePolicyType.OnceOnly,
-                                EudiReusePolicyType.LimitedTime,
+        get() = BuildConfig.ISSUER_URLS
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .mapIndexed { index, issuerUrl ->
+                VciConfig(
+                    issuerUrl = issuerUrl,
+                    config = OpenId4VciManager.Config.Builder()
+                        .withClientAuthenticationType(
+                            OpenId4VciManager.ClientAuthenticationType.AttestationBased(
+                                clientId = "eudiw-abca"
                             )
                         )
-                    )
-                    .build(),
-                order = 0
-            ),
-            VciConfig(
-                issuerUrl = "https://dev.issuer-backend.eudiw.dev",
-                config = OpenId4VciManager.Config.Builder()
-                    .withClientAuthenticationType(
-                        OpenId4VciManager.ClientAuthenticationType.AttestationBased(
-                            clientId = "eudiw-abca"
-                        )
-                    )
-                    .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
-                    .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
-                    .withDPopConfig(DPopConfig.Default)
-                    .withSupportedCredentialReusePolicies(
-                        CredentialReusePolicies.Supported(
-                            policyTypes = setOf(
-                                EudiReusePolicyType.RotatingBatch,
-                                EudiReusePolicyType.OnceOnly,
-                                EudiReusePolicyType.LimitedTime,
+                        .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
+                        .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
+                        .withDPopConfig(DPopConfig.Default)
+                        .withSupportedCredentialReusePolicies(
+                            CredentialReusePolicies.Supported(
+                                policyTypes = setOf(
+                                    EudiReusePolicyType.RotatingBatch,
+                                    EudiReusePolicyType.OnceOnly,
+                                    EudiReusePolicyType.LimitedTime,
+                                )
                             )
                         )
-                    )
-                    .build(),
-                order = 1
-            )
-        )
+                        .build(),
+                    order = index
+                )
+            }
 
     override val documentIssuanceConfig: DocumentIssuanceConfig
         get() = DocumentIssuanceConfig(
@@ -225,6 +209,7 @@ internal class WalletCoreConfigImpl(
             )
         )
 
+    // GRNET fork: from the walletProviderUrl build argument.
     override val walletProviderHost: String
-        get() = "https://dev.wallet-provider.eudiw.dev"
+        get() = BuildConfig.WALLET_PROVIDER_URL
 }
