@@ -16,6 +16,7 @@
 
 package eu.europa.ec.corelogic.config
 
+import android.content.Context
 import eu.europa.ec.corelogic.BuildConfig
 import eu.europa.ec.corelogic.model.DocumentIdentifier
 import eu.europa.ec.corelogic.provider.RegistrationCheckProvider
@@ -37,16 +38,51 @@ import eu.europa.ec.eudi.wallet.registration.relyingparty.WrpRegistrationPolicy
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.ClientIdScheme
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.Format
 import eu.europa.ec.eudi.wallet.trust.TrustPolicy
+import io.ktor.client.HttpClient
 import kotlinx.coroutines.runBlocking
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 internal class WalletCoreConfigImpl(
     private val registrationCheckProvider: RegistrationCheckProvider,
-) : WalletCoreConfig {
+) : WalletCoreConfig, KoinComponent {
 
     private var _config: EudiWalletConfig? = null
+
+    // GRNET fork: shared by configureEtsiTrust and GrnetTrust, which rebuilds the same
+    // pipeline to add GRNET's anchors.
+    private val loteLocations = SupportedLists(
+        pidProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/PIDProviders.jwt"),
+        wrpacProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/WRPACProviders.jwt"),
+        wrprcProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/WRPRCProviders.jwt"),
+        pubEaaProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/PubEAAProviders.jwt"),
+    )
+
+    private val classifications = AttestationClassifications(
+        pids = AttestationIdentifierPredicate.any(
+            identifiers = setOf(
+                AttestationIdentifier.MDoc(
+                    docType = DocumentIdentifier.MdocPid.formatType
+                ),
+                AttestationIdentifier.SDJwtVc(
+                    vct = DocumentIdentifier.SdJwtPid.formatType
+                ),
+            )
+        )
+    )
+
+    // From Koin rather than the constructor, which the demo flavour's
+    // WalletCoreConfigImpl shares through provideWalletCoreConfig.
+    private val grnetTrust by lazy {
+        GrnetTrust(
+            context = get<Context>(),
+            httpClient = get<HttpClient>(),
+            loteLocations = loteLocations,
+        )
+    }
 
     override val isRegistrationCheckEnabled: Boolean by lazy {
         runBlocking { registrationCheckProvider.isEnabled() }
@@ -90,35 +126,16 @@ internal class WalletCoreConfigImpl(
                     }
 
                     configureEtsiTrust {
-                        loteLocations(
-                            SupportedLists(
-                                pidProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/PIDProviders.jwt"),
-                                wrpacProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/WRPACProviders.jwt"),
-                                wrprcProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/WRPRCProviders.jwt"),
-                                pubEaaProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/PubEAAProviders.jwt"),
-                            )
-                        )
-
-                        classifications(
-                            AttestationClassifications(
-                                pids = AttestationIdentifierPredicate.any(
-                                    identifiers = setOf(
-                                        AttestationIdentifier.MDoc(
-                                            docType = DocumentIdentifier.MdocPid.formatType
-                                        ),
-                                        AttestationIdentifier.SDJwtVc(
-                                            vct = DocumentIdentifier.SdJwtPid.formatType
-                                        ),
-                                    )
-                                )
-                            )
-                        )
-
+                        loteLocations(loteLocations)
+                        classifications(classifications)
                         relaxCertificateProfiles()
                         relaxPkixRevocation()
                     }
 
                     configureIssuerTrust {
+                        // GRNET fork: the EU lists, then GRNET's own CAs. See GrnetTrust.
+                        trustSource(grnetTrust.source)
+                        classifications(classifications)
                         policy { default(TrustPolicy.Action.ENFORCE) }
                         requireSignedMetadata()
                         configureIssuerRegistrationPolicy(

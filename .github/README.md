@@ -66,8 +66,14 @@ read by `core-logic/src/dev/.../WalletCoreConfigImpl.kt`.
 ## Building for the demo
 
     ./gradlew assembleDevRelease \
-        -PissuerUrls=https://demo.eudiw.grnet.gr/issuer \
+        -PissuerUrls=https://demo.eudiw.grnet.gr/frontend \
         -PwalletProviderUrl=https://demo.eudiw.grnet.gr/wallet-provider
+
+The issuer URL is the issuer's **frontend**, not the backend at `/issuer`. As
+upstream designed it, the frontend is the credential issuer a wallet talks to:
+it serves the signed metadata this app requires, and its metadata sends the
+credential requests on to the backend. The backend's own metadata is unsigned,
+so pointed there the app shows "Issuance blocked".
 
 Release signing reads a keystore from `sign` at the repository root, and its
 alias and password from `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, as
@@ -82,10 +88,32 @@ sends the browser back to, so with both installed Android may ask which app
 should handle it. The scheme is left as is because the authorization server
 must accept that redirect exactly.
 
-**Issuer trust comes from the EU Trusted Lists.** The `dev` flavour, like
-`demo`, configures `configureEtsiTrust` with
-`trustedlist.serviceproviders.eudiw.dev`. GRNET's IACA is not on those lists,
-so how the app treats PIDs from our issuer is still to be checked on a device.
+**Issuers are trusted through the EU Trusted Lists, then GRNET's own CAs.**
+Upstream's `dev` flavour trusts only the EU test lists at
+`trustedlist.serviceproviders.eudiw.dev`, and requires an issuer's metadata to be
+signed by a certificate on them. GRNET's CAs are not, so upstream's app blocks
+our issuer with "Issuance blocked" before sending it anything. This flavour
+tries the EU lists first and falls back to GRNET's IACA, the one in
+`WEBUILD/pki`, bundled as `resources-logic/src/dev/res/raw/grnet_iaca.pem`. It is
+trusted for PIDs and for the issuer's signed metadata, both signed by a document
+signer under it.
+
+The WE BUILD Trust Registry root may be added for the issuer's signed metadata
+once its fingerprint is confirmed with the Trust Registry (WP4 Group 5). The
+code for it is commented out in `GrnetTrust.kt`.
+
+This applies to issuance only. Presentation, and the status list's signature,
+still go through wallet-core's own trust, the EU lists alone; the status list is
+`INFORM`, so it does not block.
+
+wallet-core builds its trusted-list source internally and does not expose it, so
+`core-logic/src/dev/.../GrnetTrust.kt` rebuilds the same pipeline from the same
+ETSI library and hands the combined source to `configureIssuerTrust`. The EU
+lists are downloaded twice as a result, once by each.
+
+**When the IACA is reissued**, replace `grnet_iaca.pem` with the new
+`ca/root-ca-grnet.pem` and release a new build: until then the app rejects
+everything under the new root.
 
 **The wallet provider does not check the app's identity yet.** Its platform
 key attestation validation is disabled. If it is enabled, it must list this
