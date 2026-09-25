@@ -60,11 +60,13 @@ import kotlin.time.Duration.Companion.minutes
  * the same pipeline from the same public ETSI library, the way wallet-core 0.30.2's
  * `EtsiTrustProvider` does, and [grnet] is tried only when it answers NotTrusted.
  *
- * The GRNET anchor is `grnet_iaca` in the dev flavour's `res/raw`, the IACA in WEBUILD/pki,
- * trusted for PIDs and for access certificates. The issuer's document signer is a leaf under it
- * and signs both the PIDs and the issuer's metadata.
+ * The GRNET anchors, in the dev flavour's `res/raw`:
  *
- * Revocation is not checked, as the dev flavour already does for the EU lists
+ * - `grnet_iaca`, the IACA in WEBUILD/pki, for PIDs and for access certificates. The issuer's
+ *   document signer is a leaf under it and signs both the PIDs and the issuer's metadata.
+ * - `webuild_trust_registry`, the WE BUILD Trust Registry root, for access certificates only.
+ *
+ * Revocation is not checked for either, as the dev flavour already does for the EU lists
  * (`relaxPkixRevocation`): Android's PKIX does not fetch a CRL from a certificate's
  * distribution point by itself.
  *
@@ -102,11 +104,10 @@ internal class GrnetTrust(
     private val grnet: IsChainTrustedForContext<List<X509Certificate>, VerificationContext, TrustAnchor> =
         run {
             val iaca = context.trustAnchor(R.raw.grnet_iaca)
-            // WE BUILD Trust Registry root: pending confirmation of its fingerprint, see .github/README.md
-            // val webuild = context.trustAnchor(R.raw.webuild_trust_registry)
+            val webuild = context.trustAnchor(R.raw.webuild_trust_registry)
             val anchors: Map<VerificationContext, List<TrustAnchor>> = mapOf(
                 VerificationContext.PID to listOf(iaca),
-                VerificationContext.WalletRelyingPartyAccessCertificate to listOf(iaca /*, webuild */),
+                VerificationContext.WalletRelyingPartyAccessCertificate to listOf(iaca, webuild),
             )
             IsChainTrustedForContext(
                 anchors.keys,

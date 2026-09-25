@@ -93,14 +93,17 @@ Upstream's `dev` flavour trusts only the EU test lists at
 `trustedlist.serviceproviders.eudiw.dev`, and requires an issuer's metadata to be
 signed by a certificate on them. GRNET's CAs are not, so upstream's app blocks
 our issuer with "Issuance blocked" before sending it anything. This flavour
-tries the EU lists first and falls back to GRNET's IACA, the one in
-`WEBUILD/pki`, bundled as `resources-logic/src/dev/res/raw/grnet_iaca.pem`. It is
-trusted for PIDs and for the issuer's signed metadata, both signed by a document
-signer under it.
+tries the EU lists first and falls back to two anchors bundled in
+`resources-logic/src/dev/res/raw/`:
 
-The WE BUILD Trust Registry root may be added for the issuer's signed metadata
-once its fingerprint is confirmed with the Trust Registry (WP4 Group 5). The
-code for it is commented out in `GrnetTrust.kt`.
+| Anchor | Trusted for |
+| --- | --- |
+| `grnet_iaca.pem`, the IACA in `WEBUILD/pki` | PIDs, and the issuer's signed metadata |
+| `webuild_trust_registry.pem`, the WE BUILD Trust Registry root (WP4 Group 5) | the issuer's signed metadata |
+
+The issuer signs both its PIDs and its metadata with a document signer under
+the IACA. The WE BUILD root covers access certificates issued by the Trust
+Registry, such as the one onboarded for GRNET.
 
 This applies to issuance only. Presentation, and the status list's signature,
 still go through wallet-core's own trust, the EU lists alone; the status list is
