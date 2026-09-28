@@ -79,6 +79,32 @@ jobs:
           echo "code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
           echo "version ${name}, code ${GITHUB_RUN_NUMBER}"
 
+      # Resolved before the build, with the GRNET artifacts dropped from the
+      # Gradle cache that setup-gradle restores, so the log shows each one
+      # being downloaded and from where.
+      - name: Show where wallet-core comes from
+        id: walletcore
+        run: |
+          set -euo pipefail
+          rm -rf ~/.gradle/caches/modules-2/files-2.1/eu.europa.ec.eudi/eudi-lib-android-*/*-grnet.* \
+                 ~/.gradle/caches/modules-2/metadata-*/descriptors/eu.europa.ec.eudi/eudi-lib-android-*/*-grnet.*
+          ./gradlew :app:dependencies --configuration devReleaseRuntimeClasspath --info --no-configuration-cache \
+            -PissuerUrls=x -PwalletProviderUrl=x > deps.log 2>&1
+          grep -oE 'Downloading https://[^ ]*eudi-lib-android-(wallet-core|wallet-document-manager|iso18013-data-transfer)[^ ]*\.pom' deps.log \
+            | sed 's/^Downloading //' | sort -u > walletcore-sources.txt || true
+          grep -oE 'eu\.europa\.ec\.eudi:eudi-lib-android-(wallet-core|wallet-document-manager|iso18013-data-transfer):[^ ]+' deps.log \
+            | sort -u > walletcore-versions.txt
+          cat walletcore-versions.txt walletcore-sources.txt
+          {
+            echo "### wallet-core"
+            echo '```'
+            cat walletcore-versions.txt walletcore-sources.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          version=$(grep -m1 ':eudi-lib-android-wallet-core:' walletcore-versions.txt | awk -F: '{print $3}')
+          source=$(grep -m1 'eudi-lib-android-wallet-core/' walletcore-sources.txt | sed -E 's#(/maven/).*#\1#' || true)
+          echo "line=wallet-core: ${version}${source:+ from ${source}}" >> "$GITHUB_OUTPUT"
+
       - name: Build
         env:
           ANDROID_KEY_ALIAS: ${{ vars.ANDROID_KEY_ALIAS }}
@@ -113,6 +139,7 @@ jobs:
             "Built from ${GITHUB_SHA} on ${GITHUB_REF_NAME}." \
             "Issuers: ${{ vars.ISSUER_URLS }}" \
             "Wallet provider: ${{ vars.WALLET_PROVIDER_URL }}" \
+            "${{ steps.walletcore.outputs.line }}" \
             "Signing certificate SHA-256: ${{ steps.apk.outputs.cert }}")
 
           if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
