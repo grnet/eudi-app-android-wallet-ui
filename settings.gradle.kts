@@ -37,6 +37,26 @@ dependencyResolutionManagement {
             mavenContent { snapshotsOnly() }
         }
         mavenLocal()
+        // GRNET fork: GRNET's wallet-core releases (versions *-grnet.N) come from
+        // its own Maven repository, and only from there. See .github/README.md.
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = "grnetWalletCore"
+                    url = uri(
+                        providers.gradleProperty("grnetMavenUrl")
+                            .getOrElse("https://grnet.github.io/eudi-lib-android-wallet-core/maven/")
+                    )
+                }
+            }
+            filter {
+                listOf(
+                    "eudi-lib-android-wallet-core",
+                    "eudi-lib-android-wallet-document-manager",
+                    "eudi-lib-android-iso18013-data-transfer",
+                ).forEach { includeVersionByRegex("eu\\.europa\\.ec\\.eudi", it, ".*-grnet\\..*") }
+            }
+        }
     }
 }
 

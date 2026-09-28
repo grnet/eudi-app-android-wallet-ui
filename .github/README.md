@@ -123,7 +123,12 @@ key attestation validation is disabled. If it is enabled, it must list this
 build's package, `eu.europa.ec.euidi.grnet.dev`, and the SHA-256 digest of
 **our** signing certificate, not upstream's.
 
-**The wallet-core library is upstream's**, from Maven Central. The
-`v0.29.0-grnet` build in `grnet/eudi-lib-android-wallet-core` is not needed:
-its one change relaxes the HAIP rule that presentation responses be
-encrypted, and our verifier asks for `direct_post.jwt` anyway.
+**The wallet-core library is GRNET's release of it**, `0.30.2-grnet.1`, from
+the Maven repository of
+[grnet/eudi-lib-android-wallet-core](https://github.com/grnet/eudi-lib-android-wallet-core)
+on GitHub Pages. It has no functional changes from upstream `0.30.2` yet; the
+fork exists so GRNET changes can ship as releases. `settings.gradle.kts` takes
+its three artifacts, in `*-grnet.N` versions, from that repository only, and
+`eudiWalletCore` in `gradle/libs.versions.toml` pins the version. To build
+against a local build of the library, pass `-PgrnetMavenUrl=file:///path/to/repo`;
+the library's own README says how to produce one.
