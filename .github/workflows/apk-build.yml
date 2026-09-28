@@ -1,0 +1,129 @@
+# GRNET fork: build the signed dev-flavour APK and publish it as a GitHub
+# Release. See .github/README.md, "Releases".
+#
+# A push to grnet or feat/** replaces that branch's rolling pre-release,
+# latest-<branch>, whose APK has a fixed download URL. A v* tag makes a
+# permanent release. Pull requests are not built: they get no secrets.
+
+name: APK build
+
+on:
+  push:
+    branches:
+      - grnet
+      - 'feat/**'
+    tags:
+      - 'v*'
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+  workflow_dispatch:
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APK_NAME: eudi-wallet-gr.apk
+
+jobs:
+  build:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Check secrets and variables
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEY_ALIAS: ${{ vars.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ISSUER_URLS: ${{ vars.ISSUER_URLS }}
+          WALLET_PROVIDER_URL: ${{ vars.WALLET_PROVIDER_URL }}
+        run: |
+          set -euo pipefail
+          for k in ANDROID_KEYSTORE_B64 ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD ISSUER_URLS WALLET_PROVIDER_URL; do
+            if [[ -z "${!k:-}" ]]; then
+              echo "::error::$k is not set; see .github/README.md, \"Releases\""
+              exit 1
+            fi
+          done
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The release signing config reads the keystore from ./sign.
+      - name: Install the signing keystore
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: printf '%s' "$ANDROID_KEYSTORE_B64" | base64 -d > sign
+
+      # versionCode rises with every run, so each APK installs over the last.
+      # The version name is written here, not committed.
+      - name: Set the version
+        id: version
+        run: |
+          set -euo pipefail
+          name="$(date -u +%Y.%m).${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}"
+          echo "VERSION_NAME=${name}" > version.properties
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          echo "code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "version ${name}, code ${GITHUB_RUN_NUMBER}"
+
+      - name: Build
+        env:
+          ANDROID_KEY_ALIAS: ${{ vars.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          ./gradlew :app:assembleDevRelease \
+            -PversionCode=${{ steps.version.outputs.code }} \
+            -PissuerUrls="${{ vars.ISSUER_URLS }}" \
+            -PwalletProviderUrl="${{ vars.WALLET_PROVIDER_URL }}"
+
+      - name: Check the signature
+        id: apk
+        run: |
+          set -euo pipefail
+          apk=$(find app/build/outputs/apk/dev/release -name '*.apk' | head -1)
+          [[ -n "$apk" ]] || { echo "::error::no APK built"; exit 1; }
+          cp "$apk" "$APK_NAME"
+          apksigner=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner
+          "$apksigner" verify --print-certs "$APK_NAME" | tee signer.txt
+          cert=$(grep -m1 'certificate SHA-256 digest' signer.txt | awk '{print $NF}')
+          echo "cert=${cert}" >> "$GITHUB_OUTPUT"
+          sha256sum "$APK_NAME" > "$APK_NAME.sha256"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          notes=$(printf '%s\n' \
+            "EUDI Wallet GR, dev flavour, version ${{ steps.version.outputs.name }} (code ${{ steps.version.outputs.code }})." \
+            "" \
+            "Built from ${GITHUB_SHA} on ${GITHUB_REF_NAME}." \
+            "Issuers: ${{ vars.ISSUER_URLS }}" \
+            "Wallet provider: ${{ vars.WALLET_PROVIDER_URL }}" \
+            "Signing certificate SHA-256: ${{ steps.apk.outputs.cert }}")
+
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            gh release create "$GITHUB_REF_NAME" "$APK_NAME" "$APK_NAME.sha256" \
+              --title "EUDI Wallet GR ${GITHUB_REF_NAME}" --notes "$notes" --verify-tag
+          else
+            # One rolling pre-release per branch, moved to this commit.
+            tag="latest-${GITHUB_REF_NAME//\//-}"
+            gh release delete "$tag" --cleanup-tag --yes 2>/dev/null || true
+            gh release create "$tag" "$APK_NAME" "$APK_NAME.sha256" \
+              --target "$GITHUB_SHA" --prerelease \
+              --title "EUDI Wallet GR, latest ${GITHUB_REF_NAME}" --notes "$notes"
+            echo "https://github.com/${GITHUB_REPOSITORY}/releases/download/${tag}/${APK_NAME}"
+          fi

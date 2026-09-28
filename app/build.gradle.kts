@@ -44,7 +44,9 @@ android {
         // official app. Flavour suffixes still apply: the dev flavour is
         // eu.europa.ec.euidi.grnet.dev. The code namespace below is unchanged.
         applicationId = "eu.europa.ec.euidi.grnet"
-        versionCode = 1
+        // GRNET fork: CI passes -PversionCode, rising with every build, so each
+        // APK installs as an update over the last. Local builds stay at 1.
+        versionCode = providers.gradleProperty("versionCode").orNull?.toInt() ?: 1
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
