@@ -30,6 +30,27 @@ hardcoded:
 The defaults are upstream's own `dev` values, so a build without the properties
 behaves exactly like upstream's. The `demo` flavour is untouched.
 
+**Plain `direct_post` responses are a capability, off by default.** Verifiers
+choose how the wallet sends its presentation back. wallet-core's default policy,
+HAIP, accepts only the encrypted modes, `direct_post.jwt` and `dc_api.jwt`, and
+refuses a verifier asking for plain `direct_post` with "HAIP profile requires an
+encrypted response mode". Some interop verifiers ask for exactly that, so a
+build can allow it:
+
+| Property | What | Default |
+| --- | --- | --- |
+| `allowPlainDirectPost` | `true` accepts any response mode, including unencrypted `direct_post` | `false`: HAIP, encrypted only |
+
+It becomes `BuildConfig.ALLOW_PLAIN_DIRECT_POST`, read in the `dev` flavour's
+`WalletCoreConfigImpl.kt` through wallet-core's `withEncryptionPolicy`; the
+library itself is unchanged. Only `true` and `false` are accepted, so a typo
+fails the build rather than leaving it off unnoticed. With it on, the
+presentation reaches the verifier protected by TLS alone: fine for testing,
+not what a production wallet should accept. The policy's type comes from
+openid4vp, which wallet-core keeps internal, so `core-logic` depends on it
+directly (`eudiOpenId4Vp` in `gradle/libs.versions.toml`, to be kept equal to
+wallet-core's).
+
 **gov.gr branding, beside the EUDI Wallet logo**, as in the verifier UI at
 [demo.eudiw.grnet.gr/verifier-ui](https://demo.eudiw.grnet.gr/verifier-ui/home),
 so the build is easy to tell apart from the reference app. Nothing replaces

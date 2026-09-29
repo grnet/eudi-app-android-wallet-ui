@@ -125,6 +125,17 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                             "https://dev.wallet-provider.eudiw.dev"
                         )
                     )
+                    // Off unless -PallowPlainDirectPost=true: whether the wallet also
+                    // answers verifiers asking for an unencrypted direct_post response.
+                    // Off keeps wallet-core's HAIP default, encrypted responses only.
+                    addConfigField(
+                        "ALLOW_PLAIN_DIRECT_POST",
+                        when (val v = providers.gradleProperty("allowPlainDirectPost").getOrElse("false")) {
+                            "true" -> true
+                            "false" -> false
+                            else -> error("allowPlainDirectPost must be true or false, not '$v'")
+                        }
+                    )
 
                     // Manifest placeholders for Wallet deepLink
                     manifestPlaceholders["deepLinkScheme"] = walletScheme

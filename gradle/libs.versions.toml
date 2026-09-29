@@ -54,6 +54,9 @@ koinPlugin = "1.1.0"
 eudiWalletCore = "0.30.2-grnet.1"
 rqesUiSDK = "0.4.0"
 eudiLibKmpEtsi1196x2 = "0.4.0-alpha.1"
+# GRNET fork: wallet-core's own openid4vp version, for its ResponseMode type in
+# the dev flavour's encryption policy. Keep it equal to wallet-core's.
+eudiOpenId4Vp = "0.15.1"
 
 # Logging
 slf4j = "2.0.19"
@@ -178,6 +181,7 @@ koin-workmanager = { group = "io.insert-koin", name = "koin-androidx-workmanager
 eudi-wallet-core = { group = "eu.europa.ec.eudi", name = "eudi-lib-android-wallet-core", version.ref = "eudiWalletCore" }
 rqes-ui-sdk = { group = "eu.europa.ec.eudi", name = "eudi-lib-android-rqes-ui", version.ref = "rqesUiSDK" }
 eudi-lib-kmp-etsi119602-consultation = { module = "eu.europa.ec.eudi:etsi-119602-consultation", version.ref = "eudiLibKmpEtsi1196x2" }
+eudi-lib-jvm-openid4vp = { module = "eu.europa.ec.eudi:eudi-lib-jvm-openid4vp-kt", version.ref = "eudiOpenId4Vp" }
 
 # Logging
 slf4j = { group = "org.slf4j", name = "slf4j-simple", version.ref = "slf4j" }
