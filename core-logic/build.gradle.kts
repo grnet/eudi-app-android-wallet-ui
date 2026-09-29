@@ -41,6 +41,10 @@ dependencies {
 
     implementation(libs.androidx.biometric)
 
+    // GRNET fork: wallet-core keeps openid4vp internal; the dev flavour's
+    // encryption policy needs its ResponseMode type. Same version as wallet-core's.
+    implementation(libs.eudi.lib.jvm.openid4vp)
+
     testImplementation(project(LibraryModule.TestLogic.path))
 }
 

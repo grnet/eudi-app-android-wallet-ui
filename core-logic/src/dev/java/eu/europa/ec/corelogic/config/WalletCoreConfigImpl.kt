@@ -115,6 +115,13 @@ internal class WalletCoreConfigImpl(
                         withFormats(
                             Format.MsoMdoc.ES256, Format.SdJwtVc.ES256
                         )
+                        // GRNET fork: a capability, off by default. With
+                        // -PallowPlainDirectPost=true the wallet accepts any response
+                        // mode, including a plain, unencrypted direct_post. Off, the
+                        // default applies: HAIP, encrypted responses only.
+                        if (BuildConfig.ALLOW_PLAIN_DIRECT_POST) {
+                            withEncryptionPolicy { }
+                        }
                     }
 
                     configureDCAPI {
