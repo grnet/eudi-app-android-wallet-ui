@@ -1,9 +1,10 @@
 # GRNET fork: build the signed dev-flavour APK and publish it as a GitHub
 # Release. See .github/README.md, "Releases".
 #
-# A push to grnet or feat/** replaces that branch's rolling pre-release,
-# latest-<branch>, whose APK has a fixed download URL. A v* tag makes a
-# permanent release. Pull requests are not built: they get no secrets.
+# Only grnet and v* tags are published. A push to grnet, which is what merging
+# a pull request is, replaces the release latest-grnet; a v* tag makes a
+# permanent one. A manual run on any other branch attaches the APK to the run
+# instead, so work in progress never reaches the releases page.
 
 name: APK build
 
@@ -11,7 +12,6 @@ on:
   push:
     branches:
       - grnet
-      - 'feat/**'
     tags:
       - 'v*'
     paths-ignore:
@@ -128,7 +128,17 @@ jobs:
           echo "cert=${cert}" >> "$GITHUB_OUTPUT"
           sha256sum "$APK_NAME" > "$APK_NAME.sha256"
 
+      - name: Attach the APK to the run
+        if: github.ref_type != 'tag' && github.ref_name != 'grnet'
+        uses: actions/upload-artifact@v4
+        with:
+          name: eudi-wallet-gr-${{ steps.version.outputs.name }}
+          path: |
+            ${{ env.APK_NAME }}
+            ${{ env.APK_NAME }}.sha256
+
       - name: Publish the release
+        if: github.ref_type == 'tag' || github.ref_name == 'grnet'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -142,15 +152,20 @@ jobs:
             "${{ steps.walletcore.outputs.line }}" \
             "Signing certificate SHA-256: ${{ steps.apk.outputs.cert }}")
 
+          # A tag is a deliberate release, so it becomes Latest. latest-grnet is
+          # Latest only until the first v* tag exists.
           if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
             gh release create "$GITHUB_REF_NAME" "$APK_NAME" "$APK_NAME.sha256" \
-              --title "EUDI Wallet GR ${GITHUB_REF_NAME}" --notes "$notes" --verify-tag
+              --title "EUDI Wallet GR ${GITHUB_REF_NAME}" --notes "$notes" --verify-tag --latest
           else
-            # One rolling pre-release per branch, moved to this commit.
-            tag="latest-${GITHUB_REF_NAME//\//-}"
+            tag="latest-grnet"
+            latest=true
+            if gh release list --limit 100 --json tagName -q '.[].tagName' | grep -q '^v'; then
+              latest=false
+            fi
             gh release delete "$tag" --cleanup-tag --yes 2>/dev/null || true
             gh release create "$tag" "$APK_NAME" "$APK_NAME.sha256" \
-              --target "$GITHUB_SHA" --prerelease \
-              --title "EUDI Wallet GR, latest ${GITHUB_REF_NAME}" --notes "$notes"
-            echo "https://github.com/${GITHUB_REPOSITORY}/releases/download/${tag}/${APK_NAME}"
+              --target "$GITHUB_SHA" --latest="$latest" \
+              --title "EUDI Wallet GR, latest grnet" --notes "$notes"
           fi
+          echo "https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/${APK_NAME}"

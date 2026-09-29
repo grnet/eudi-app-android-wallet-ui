@@ -93,18 +93,25 @@ another only if its version code is not lower.
 
 ## Releases
 
-`.github/workflows/apk-build.yml` builds the signed `devRelease` APK and
-publishes it as a GitHub Release:
+`.github/workflows/apk-build.yml` builds the signed `devRelease` APK. Only
+`grnet` and `v*` tags are published, so the releases page holds nothing but
+builds meant for use:
 
-- a push to `grnet` or `feat/**` replaces that branch's rolling pre-release,
-  `latest-<branch>` (e.g. `latest-grnet`), so its download URL stays the same:
-  `https://github.com/grnet/eudi-app-android-wallet-ui/releases/download/latest-grnet/eudi-wallet-gr.apk`
+- a push to `grnet`, which is what merging a pull request is, replaces the
+  release `latest-grnet`
 - a `v*` tag makes a permanent release
+- a manual run on any other branch attaches the APK to the run, under the
+  run's artifacts, for testing a branch before it is merged. Artifacts need a
+  GitHub login and are kept 90 days.
+
+The release marked Latest is `latest-grnet` until the first `v*` tag; after
+that it is the newest tag. So this link is always the build to install:
+`https://github.com/grnet/eudi-app-android-wallet-ui/releases/latest/download/eudi-wallet-gr.apk`
 
 Each release carries `eudi-wallet-gr.apk`, its SHA-256, and in its notes the
-commit, the endpoints it was built for and the signing certificate. The version
-code is the workflow's run number, and the version name is
-`<year>.<month>.<run>-<commit>`.
+commit, the endpoints it was built for, the wallet-core version and where it
+came from, and the signing certificate. The version code is the workflow's run
+number, and the version name is `<year>.<month>.<run>-<commit>`.
 
 The workflow needs these repository settings:
 
