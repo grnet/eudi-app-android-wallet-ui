@@ -88,7 +88,7 @@ jobs:
           set -euo pipefail
           rm -rf ~/.gradle/caches/modules-2/files-2.1/eu.europa.ec.eudi/eudi-lib-android-*/*-grnet.* \
                  ~/.gradle/caches/modules-2/metadata-*/descriptors/eu.europa.ec.eudi/eudi-lib-android-*/*-grnet.*
-          ./gradlew :app:dependencies --configuration devReleaseRuntimeClasspath --info --no-configuration-cache \
+          ./gradlew :app:dependencies --configuration devDebugRuntimeClasspath --info --no-configuration-cache \
             -PissuerUrls=x -PwalletProviderUrl=x > deps.log 2>&1
           grep -oE 'Downloading https://[^ ]*eudi-lib-android-(wallet-core|wallet-document-manager|iso18013-data-transfer)[^ ]*\.pom' deps.log \
             | sed 's/^Downloading //' | sort -u > walletcore-sources.txt || true
@@ -110,7 +110,7 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ vars.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          ./gradlew :app:assembleDevRelease \
+          ./gradlew :app:assembleDevDebug \
             -PversionCode=${{ steps.version.outputs.code }} \
             -PissuerUrls="${{ vars.ISSUER_URLS }}" \
             -PwalletProviderUrl="${{ vars.WALLET_PROVIDER_URL }}"
