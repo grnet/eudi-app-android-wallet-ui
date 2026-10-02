@@ -76,9 +76,56 @@ credential requests on to the backend. The backend's own metadata is unsigned,
 so pointed there the app shows "Issuance blocked".
 
 Release signing reads a keystore from `sign` at the repository root, and its
-alias and password from `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, as
-upstream's does. Keep one keystore for every build: an APK signed with a
-different key cannot be installed over the previous one.
+alias and password from `androidKeyAlias` and `androidKeyPassword` in
+`local.properties`, or else from `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`,
+as upstream's does. Both files are git-ignored. Keep one keystore for every
+build: an APK signed with a different key cannot be installed over the previous
+one.
+
+The keystore is GRNET's, generated 2026-09-28: alias `grnet-eudi-wallet`, RSA
+4096, valid to 2056, certificate SHA-256
+`03:BC:66:5B:AC:9C:9F:24:BE:95:93:81:AC:24:2D:8A:47:EC:05:30:35:8D:53:AE:D4:EC:89:72:7D:23:AB:12`.
+GitHub secrets cannot be read back, so the copy in the repository's secrets is
+not a backup; keep the file and its password safe elsewhere.
+
+`-PversionCode` sets the version code, 1 if not given. An APK installs over
+another only if its version code is not lower.
+
+## Releases
+
+`.github/workflows/apk-build.yml` builds the signed `devDebug` APK. Only
+`grnet` and `v*` tags are published, so the releases page holds nothing but
+builds meant for use:
+
+- a push to `grnet`, which is what merging a pull request is, replaces the
+  release `latest-grnet`
+- a `v*` tag makes a permanent release
+- a manual run on any other branch attaches the APK to the run, under the
+  run's artifacts, for testing a branch before it is merged. Artifacts need a
+  GitHub login and are kept 90 days.
+
+The release marked Latest is `latest-grnet` until the first `v*` tag; after
+that it is the newest tag. So this link is always the build to install:
+`https://github.com/grnet/eudi-app-android-wallet-ui/releases/latest/download/eudi-wallet-gr.apk`
+
+Each release carries `eudi-wallet-gr.apk`, its SHA-256, and in its notes the
+commit, the endpoints it was built for, the wallet-core version and where it
+came from, and the signing certificate. The version code is the workflow's run
+number, and the version name is `<year>.<month>.<run>-<commit>`.
+
+The workflow needs these repository settings:
+
+| Name | Kind | What |
+| --- | --- | --- |
+| `ANDROID_KEYSTORE_B64` | secret | the keystore `sign`, base64 |
+| `ANDROID_KEY_ALIAS` | variable | its alias, `grnet-eudi-wallet`; not secret |
+| `ANDROID_KEY_PASSWORD` | secret | its password, for the store and the key |
+| `ISSUER_URLS` | variable | the `issuerUrls` build argument |
+| `WALLET_PROVIDER_URL` | variable | the `walletProviderUrl` build argument |
+
+The release APK is signed with a different key from the debug builds of
+`install-debug.sh`, under the same package name, so a phone holds one or the
+other: uninstall the one to install the other.
 
 ## Worth knowing
 
