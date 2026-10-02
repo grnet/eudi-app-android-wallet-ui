@@ -93,7 +93,7 @@ another only if its version code is not lower.
 
 ## Releases
 
-`.github/workflows/apk-build.yml` builds the signed `devRelease` APK. Only
+`.github/workflows/apk-build.yml` builds the signed `devDebug` APK. Only
 `grnet` and `v*` tags are published, so the releases page holds nothing but
 builds meant for use:
 
