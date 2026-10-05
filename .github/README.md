@@ -93,7 +93,10 @@ another only if its version code is not lower.
 
 ## Releases
 
-`.github/workflows/apk-build.yml` builds the signed `devDebug` APK. Only
+`.github/workflows/apk-build.yml` builds the `devDebug` APK, debuggable and not
+minified, so stack traces from users' phones are readable. With
+`-PsignDebugWithReleaseKey=true` it is signed with GRNET's keystore, like a
+release, so each APK installs over the last. Only
 `grnet` and `v*` tags are published, so the releases page holds nothing but
 builds meant for use:
 
@@ -123,9 +126,9 @@ The workflow needs these repository settings:
 | `ISSUER_URLS` | variable | the `issuerUrls` build argument |
 | `WALLET_PROVIDER_URL` | variable | the `walletProviderUrl` build argument |
 
-The release APK is signed with a different key from the debug builds of
-`install-debug.sh`, under the same package name, so a phone holds one or the
-other: uninstall the one to install the other.
+The published APK is signed with a different key from the debug builds of
+`install-debug.sh`, which use the default debug key, under the same package
+name, so a phone holds one or the other: uninstall the one to install the other.
 
 ## Worth knowing
 
@@ -170,10 +173,10 @@ key attestation validation is disabled. If it is enabled, it must list this
 build's package, `eu.europa.ec.euidi.grnet.dev`, and the SHA-256 digest of
 **our** signing certificate, not upstream's.
 
-**The wallet-core library is GRNET's release of it**, `0.30.2-grnet.1`, from
+**The wallet-core library is GRNET's release of it**, `0.31.0-grnet.1`, from
 the Maven repository of
 [grnet/eudi-lib-android-wallet-core](https://github.com/grnet/eudi-lib-android-wallet-core)
-on GitHub Pages. It has no functional changes from upstream `0.30.2` yet; the
+on GitHub Pages. It has no functional changes from upstream `0.31.0` yet; the
 fork exists so GRNET changes can ship as releases. `settings.gradle.kts` takes
 its three artifacts, in `*-grnet.N` versions, from that repository only, and
 `eudiWalletCore` in `gradle/libs.versions.toml` pins the version. To build

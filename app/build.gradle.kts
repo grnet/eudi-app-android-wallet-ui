@@ -59,6 +59,12 @@ android {
             isDebuggable = true
             isMinifyEnabled = false
             applicationIdSuffix = AppBuildType.DEBUG.applicationIdSuffix
+            // GRNET fork: CI passes -PsignDebugWithReleaseKey=true, so the debug
+            // APK it publishes is signed with GRNET's key and installs over the
+            // previous release. Local debug builds keep the default debug key.
+            if (providers.gradleProperty("signDebugWithReleaseKey").orNull == "true") {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         release {
             isDebuggable = false

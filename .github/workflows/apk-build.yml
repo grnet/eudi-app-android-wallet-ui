@@ -111,6 +111,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           ./gradlew :app:assembleDevDebug \
+            -PsignDebugWithReleaseKey=true \
             -PversionCode=${{ steps.version.outputs.code }} \
             -PissuerUrls="${{ vars.ISSUER_URLS }}" \
             -PwalletProviderUrl="${{ vars.WALLET_PROVIDER_URL }}"
@@ -119,7 +120,7 @@ jobs:
         id: apk
         run: |
           set -euo pipefail
-          apk=$(find app/build/outputs/apk/dev/release -name '*.apk' | head -1)
+          apk=$(find app/build/outputs/apk/dev/debug -name '*.apk' | head -1)
           [[ -n "$apk" ]] || { echo "::error::no APK built"; exit 1; }
           cp "$apk" "$APK_NAME"
           apksigner=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner
