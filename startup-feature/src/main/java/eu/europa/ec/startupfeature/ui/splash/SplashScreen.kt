@@ -34,11 +34,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import eu.europa.ec.uilogic.component.AppIcons
+import eu.europa.ec.uilogic.component.content.ContentErrorConfig
+import eu.europa.ec.uilogic.component.content.ContentScreen
 import eu.europa.ec.uilogic.component.utils.OncePerViewModelEffect
 import eu.europa.ec.uilogic.component.wrap.WrapImage
+import eu.europa.ec.uilogic.extension.finish
 import eu.europa.ec.uilogic.navigation.ModuleRoute
 import eu.europa.ec.uilogic.navigation.StartupScreens
 import kotlinx.coroutines.flow.Flow
@@ -51,19 +55,23 @@ fun SplashScreen(
     viewModel: SplashViewModel
 ) {
     val state: State by viewModel.viewState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
     Content(
         state = state,
         effectFlow = viewModel.effect,
-        onNavigationRequested = {
-            when (it) {
+        onEventSend = viewModel::setEvent,
+        onNavigationRequested = { navigationEffect ->
+            when (navigationEffect) {
+                is Effect.Navigation.Finish -> context.finish()
                 is Effect.Navigation.SwitchModule -> {
-                    navController.navigate(it.moduleRoute.route) {
+                    navController.navigate(navigationEffect.moduleRoute.route) {
                         popUpTo(ModuleRoute.StartupModule.route) { inclusive = true }
                     }
                 }
 
                 is Effect.Navigation.SwitchScreen -> {
-                    navController.navigate(it.route) {
+                    navController.navigate(navigationEffect.route) {
                         popUpTo(StartupScreens.Splash.screenRoute) { inclusive = true }
                     }
                 }
@@ -80,6 +88,7 @@ fun SplashScreen(
 private fun Content(
     state: State,
     effectFlow: Flow<Effect>,
+    onEventSend: (Event) -> Unit,
     onNavigationRequested: (navigationEffect: Effect.Navigation) -> Unit
 ) {
     val visibilityState = remember {
@@ -87,31 +96,42 @@ private fun Content(
             targetState = true
         }
     }
-    Scaffold { paddingValues ->
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.surface),
-            contentAlignment = Alignment.Center
-        ) {
-            AnimatedVisibility(
-                visibleState = visibilityState,
-                enter = fadeIn(animationSpec = tween(state.logoAnimationDuration)),
-                exit = fadeOut(animationSpec = tween(state.logoAnimationDuration)),
+
+    if (state.error != null) {
+        ContentScreen(
+            contentErrorConfig = ContentErrorConfig(
+                errorSubTitle = state.error,
+                onCancel = { onEventSend(Event.Cancel) },
+                onRetry = { onEventSend(Event.Retry) },
+            )
+        ) { }
+    } else {
+        Scaffold { paddingValues ->
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.surface),
+                contentAlignment = Alignment.Center
             ) {
-                // GRNET fork: the gov.gr beta logo beneath the EUDI mark, so the
-                // build is told apart from the reference app from its first screen.
-                // No extra spacing: the mark's own canvas leaves room beneath it.
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+                AnimatedVisibility(
+                    visibleState = visibilityState,
+                    enter = fadeIn(animationSpec = tween(state.logoAnimationDuration)),
+                    exit = fadeOut(animationSpec = tween(state.logoAnimationDuration)),
                 ) {
-                    WrapImage(
-                        iconData = AppIcons.LogoIcon
-                    )
-                    WrapImage(
-                        iconData = AppIcons.GovGrBeta
-                    )
+                    // GRNET fork: the gov.gr beta logo beneath the EUDI mark, so the
+                    // build is told apart from the reference app from its first screen.
+                    // No extra spacing: the mark's own canvas leaves room beneath it.
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        WrapImage(
+                            iconData = AppIcons.LogoIcon
+                        )
+                        WrapImage(
+                            iconData = AppIcons.GovGrBeta
+                        )
+                    }
                 }
             }
         }
