@@ -168,6 +168,9 @@ internal class WalletCoreConfigImpl(
                     }
 
                     configureReaderAuthentication {
+                        // GRNET fork: the EU lists, then GRNET's anchors, as for issuers. Not
+                        // trustedCertificates(), which would replace the lists, not add to them.
+                        trustSource(grnetTrust.source)
                         enforceIfPresent()
                     }
 

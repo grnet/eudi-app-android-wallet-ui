@@ -52,8 +52,8 @@ import java.util.Base64
 import kotlin.time.Duration.Companion.minutes
 
 /**
- * GRNET fork: issuer trust for the dev flavour, the EU trusted lists first and GRNET's own
- * CAs when those do not trust a chain.
+ * GRNET fork: issuer and relying-party trust for the dev flavour, the EU trusted lists first and
+ * GRNET's own CAs when those do not trust a chain.
  *
  * wallet-core builds its trusted-list source internally from `configureEtsiTrust` and does not
  * expose it, so a source that adds anchors to it has to be built beside it. [euLists] rebuilds
