@@ -241,6 +241,14 @@
     <string name="request_transaction_aeseal">Advanced electronic seal</string>
     <string name="request_transaction_aesqc">Advanced electronic signature with a qualified certificate</string>
     <string name="request_transaction_aesealqc">Advanced electronic seal with a qualified certificate</string>
+    <!-- GRNET fork: TS12 card payments -->
+    <string name="request_transaction_payment_section_title">Payment to approve</string>
+    <string name="request_transaction_payment_details_title">Payment details</string>
+    <string name="request_transaction_payee">Payee</string>
+    <string name="request_transaction_payee_id">Payee ID</string>
+    <string name="request_transaction_amount">Amount</string>
+    <string name="request_transaction_date_time">Date and time</string>
+    <string name="request_transaction_id">Transaction ID</string>
     <string name="request_combination_option_title">Option %1$d of %2$d</string>
     <string name="request_no_data">The requested document is not available in your EUDI Wallet.
         Please contact the authorised issuer for further information.</string>

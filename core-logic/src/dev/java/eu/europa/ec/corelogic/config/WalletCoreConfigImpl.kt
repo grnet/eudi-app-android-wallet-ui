@@ -20,6 +20,7 @@ import android.content.Context
 import eu.europa.ec.corelogic.BuildConfig
 import eu.europa.ec.corelogic.model.DocumentIdentifier
 import eu.europa.ec.corelogic.provider.RegistrationCheckProvider
+import eu.europa.ec.corelogic.transactiondata.ScaPaymentTransactionType
 import eu.europa.ec.eudi.etsi119602.datamodel.Uri
 import eu.europa.ec.eudi.etsi1196x2.consultation.AttestationClassifications
 import eu.europa.ec.eudi.etsi1196x2.consultation.AttestationIdentifier
@@ -118,7 +119,10 @@ internal class WalletCoreConfigImpl(
                         )
                         withTransactionDataTypes(
                             TransactionDataType.QES_APPROVAL,
-                            TransactionDataType.QES
+                            TransactionDataType.QES,
+                            // GRNET fork: TS12 card payments, for the WE BUILD PA2 demo. Also
+                            // used to read them back from the transaction log.
+                            TransactionDataType(ScaPaymentTransactionType)
                         )
                     }
 

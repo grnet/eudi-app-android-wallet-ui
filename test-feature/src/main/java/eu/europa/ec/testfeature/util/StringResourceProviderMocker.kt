@@ -142,6 +142,14 @@ object StringResourceProviderMocker {
                 R.string.request_transaction_aeseal to "Advanced electronic seal",
                 R.string.request_transaction_aesqc to "Advanced electronic signature with a qualified certificate",
                 R.string.request_transaction_aesealqc to "Advanced electronic seal with a qualified certificate",
+                // GRNET fork: TS12 card payments
+                R.string.request_transaction_payment_section_title to "Payment to approve",
+                R.string.request_transaction_payment_details_title to "Payment details",
+                R.string.request_transaction_payee to "Payee",
+                R.string.request_transaction_payee_id to "Payee ID",
+                R.string.request_transaction_amount to "Amount",
+                R.string.request_transaction_date_time to "Date and time",
+                R.string.request_transaction_id to "Transaction ID",
             ),
         )
         whenever(resourceProvider.getString(R.string.request_collapsed_supporting_text))

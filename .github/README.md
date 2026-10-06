@@ -63,6 +63,23 @@ The properties become `BuildConfig.ISSUER_URLS` and
 `build-logic/convention/src/main/kotlin/AndroidLibraryConventionPlugin.kt` and
 read by `core-logic/src/dev/.../WalletCoreConfigImpl.kt`.
 
+**TS12 card payments are accepted as transaction data**, for the WE BUILD PA2
+payment demo: a relying party sends `transaction_data` of type
+`urn:eudi:sca:payment:1` with the payment credential's query, the wallet shows
+the payment before Share, and wallet-core binds its hash into the key binding
+JWT. wallet-core declares only the QES types, so the app declares this one
+(`core-logic/.../transactiondata/ScaPayment.kt`) and registers it in the `dev`
+flavour beside them, which also lets the transaction log read payments back.
+
+- The payload is read leniently: TS12's members this wallet does not show are
+  ignored, but payee name, a numeric amount and currency are required, and a
+  request without them is rejected as `invalid_transaction_data`.
+- The request screen shows "Payment to approve" expanded, payee and amount
+  first, with no eIDAS trust framework row (`TransactionDataTransformer`).
+- The amount is shown with its ISO 4217 code in the currency's minor units,
+  e.g. `38.00 EUR`, whatever the device's locale, and is never rounded.
+- No `amr` claim yet: it has to report the factors actually used at unlock.
+
 ## Building for the demo
 
     ./gradlew assembleDevRelease \

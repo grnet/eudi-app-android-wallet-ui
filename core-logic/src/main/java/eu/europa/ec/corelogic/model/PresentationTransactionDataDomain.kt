@@ -34,6 +34,19 @@ sealed interface PresentationTransactionDataDomain {
         val signatureRequests: List<QesSignatureRequestDomain>,
     ) : PresentationTransactionDataDomain
 
+    // GRNET fork: a TS12 card payment, see ScaPayment.
+    data class Payment(
+        val displayName: String?,
+        val credentialIds: List<String>,
+        val transactionId: String?,
+        val dateTime: String?,
+        val payeeName: String,
+        val payeeId: String?,
+        /** As received: a decimal number with no rounding applied. */
+        val amount: String,
+        val currency: String,
+    ) : PresentationTransactionDataDomain
+
     data object Unavailable : PresentationTransactionDataDomain
 }
 
