@@ -560,6 +560,83 @@ class TestTransactionDataTransformer {
         assertEquals(listOf("eIDAS"), section.values("Trust framework"))
     }
 
+    // GRNET fork, Case 14:
+    // 1. A TS12 card payment, as the WE BUILD PA2 relying party sends it, bound to one query.
+    //
+    // Case 14 Expected Result:
+    // An expanded payment section: payee and amount first, the amount in minor units with its
+    // currency code, and no eIDAS trust framework row.
+    @Test
+    fun `Given a payment, When transformToUi is called, Then an expanded payment section is returned`() {
+        // When
+        val section = transform(transactions = listOf(mockedPayment))!!
+
+        // Then
+        assertEquals("Payment to approve", section.title)
+        assertTrue(section.details.isExpanded)
+        assertEquals("Payment details", section.details.header.text())
+        assertEquals(
+            listOf(
+                "Payee" to "Fast Ferries",
+                "Amount" to "38.00 EUR",
+                "Date and time" to "2026-10-06T02:37:21.010Z",
+                "Payee ID" to "fast-ferries-demo",
+                "Transaction ID" to "ff-1791254240824-xqei0x",
+                "Requested credentials" to "sca_card_dpc",
+            ),
+            section.rows().map { row -> row.overlineText to row.text() },
+        )
+        assertTrue(section.documentUrlsByItemId.isEmpty())
+    }
+
+    // GRNET fork, Case 15:
+    // 1. Payment amounts with more digits than the currency's minor units, no minor units, or an
+    //    unknown currency code; optional payment fields absent.
+    //
+    // Case 15 Expected Result:
+    // No digit is dropped or rounded, and absent optional fields produce no rows.
+    @Test
+    fun `Given unusual payment amounts, When transformToUi is called, Then amounts are never rounded`() {
+        val minimal = mockedPayment.copy(transactionId = null, dateTime = null, payeeId = null)
+
+        assertEquals(
+            listOf("12.345 EUR"),
+            transform(listOf(minimal.copy(amount = "12.345")))!!.values("Amount"),
+        )
+        assertEquals(
+            listOf("500 JPY"),
+            transform(listOf(minimal.copy(amount = "500", currency = "JPY")))!!.values("Amount"),
+        )
+        assertEquals(
+            listOf("1.5 XYZ"),
+            transform(listOf(minimal.copy(amount = "1.5", currency = "XYZ")))!!.values("Amount"),
+        )
+        assertEquals(
+            listOf("Payee", "Amount", "Requested credentials"),
+            transform(listOf(minimal))!!.rows().map { row -> row.overlineText },
+        )
+    }
+
+    // GRNET fork, Case 16:
+    // 1. A payment and a signature approval in the same request.
+    //
+    // Case 16 Expected Result:
+    // The section keeps the signing titles and the eIDAS row, and is expanded for the payment.
+    @Test
+    fun `Given a payment beside a signature approval, When transformToUi is called, Then signing titles remain`() {
+        // When
+        val section = transform(
+            transactions = listOf(mockedTransactionDataApproval, mockedPayment),
+        )!!
+
+        // Then
+        assertEquals("Data to be signed", section.title)
+        assertEquals("Signature details", section.details.header.text())
+        assertTrue(section.details.isExpanded)
+        assertEquals(listOf("eIDAS"), section.values("Trust framework"))
+        assertEquals(listOf("38.00 EUR"), section.values("Amount"))
+    }
+
     //endregion
 
     //region transformRecordedToUi
@@ -687,6 +764,16 @@ class TestTransactionDataTransformer {
     private val mockedOtp = "000123"
     private val mockedSha384Oid = "2.16.840.1.101.3.4.2.2"
     private val mockedSha512Oid = "2.16.840.1.101.3.4.2.3"
+    private val mockedPayment = PresentationTransactionDataDomain.Payment(
+        displayName = "Payment",
+        credentialIds = listOf("sca_card_dpc"),
+        transactionId = "ff-1791254240824-xqei0x",
+        dateTime = "2026-10-06T02:37:21.010Z",
+        payeeName = "Fast Ferries",
+        payeeId = "fast-ferries-demo",
+        amount = "38",
+        currency = "EUR",
+    )
     private val mockedSignature = QesSignatureRequestDomain(
         label = "Inline.pdf",
         signatureQualifier = "eu_eidas_qes",

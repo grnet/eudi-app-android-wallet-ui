@@ -63,6 +63,23 @@ The properties become `BuildConfig.ISSUER_URLS` and
 `build-logic/convention/src/main/kotlin/AndroidLibraryConventionPlugin.kt` and
 read by `core-logic/src/dev/.../WalletCoreConfigImpl.kt`.
 
+**TS12 card payments are accepted as transaction data**, for the WE BUILD PA2
+payment demo: a relying party sends `transaction_data` of type
+`urn:eudi:sca:payment:1` with the payment credential's query, the wallet shows
+the payment before Share, and wallet-core binds its hash into the key binding
+JWT. wallet-core declares only the QES types, so the app declares this one
+(`core-logic/.../transactiondata/ScaPayment.kt`) and registers it in the `dev`
+flavour beside them, which also lets the transaction log read payments back.
+
+- The payload is read leniently: TS12's members this wallet does not show are
+  ignored, but payee name, a numeric amount and currency are required, and a
+  request without them is rejected as `invalid_transaction_data`.
+- The request screen shows "Payment to approve" expanded, payee and amount
+  first, with no eIDAS trust framework row (`TransactionDataTransformer`).
+- The amount is shown with its ISO 4217 code in the currency's minor units,
+  e.g. `38.00 EUR`, whatever the device's locale, and is never rounded.
+- No `amr` claim yet: it has to report the factors actually used at unlock.
+
 ## Building for the demo
 
     ./gradlew assembleDevRelease \
@@ -148,21 +165,27 @@ tries the EU lists first and falls back to two anchors bundled in
 
 | Anchor | Trusted for |
 | --- | --- |
-| `grnet_iaca.pem`, the IACA in `WEBUILD/pki` | PIDs, and the issuer's signed metadata |
-| `webuild_trust_registry.pem`, the WE BUILD Trust Registry root (WP4 Group 5) | the issuer's signed metadata |
+| `grnet_iaca.pem`, the IACA in `WEBUILD/pki` | PIDs, the issuer's signed metadata, and relying parties' access certificates |
+| `webuild_trust_registry.pem`, the WE BUILD Trust Registry root (WP4 Group 5) | the issuer's signed metadata, and relying parties' access certificates |
 
 The issuer signs both its PIDs and its metadata with a document signer under
 the IACA. The WE BUILD root covers access certificates issued by the Trust
 Registry, such as the one onboarded for GRNET.
 
-This applies to issuance only. Presentation, and the status list's signature,
-still go through wallet-core's own trust, the EU lists alone; the status list is
-`INFORM`, so it does not block.
+**Relying parties are trusted the same way**: a request signed with an access
+certificate is accepted if the EU lists or one of the two anchors above trust
+its chain. Left to itself, `configureReaderAuthentication` uses the EU lists
+alone, and blocks any GRNET relying party ("Presentation blocked"). Unknown
+relying parties are still blocked.
+
+The status list's signature still goes through wallet-core's own trust, the EU
+lists alone; it is `INFORM`, so it does not block.
 
 wallet-core builds its trusted-list source internally and does not expose it, so
 `core-logic/src/dev/.../GrnetTrust.kt` rebuilds the same pipeline from the same
-ETSI library and hands the combined source to `configureIssuerTrust`. The EU
-lists are downloaded twice as a result, once by each.
+ETSI library and hands the combined source to `configureIssuerTrust` and
+`configureReaderAuthentication`. The EU lists are downloaded twice as a result,
+once by wallet-core and once by `GrnetTrust`.
 
 **When the IACA is reissued**, replace `grnet_iaca.pem` with the new
 `ca/root-ca-grnet.pem` and release a new build: until then the app rejects

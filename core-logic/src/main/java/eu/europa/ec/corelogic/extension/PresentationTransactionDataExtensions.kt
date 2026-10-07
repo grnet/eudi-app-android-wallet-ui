@@ -21,6 +21,7 @@ import eu.europa.ec.corelogic.model.PresentationTransactionDataDomain
 import eu.europa.ec.corelogic.model.QesDocumentDigestDomain
 import eu.europa.ec.corelogic.model.QesSignatureRequestDomain
 import eu.europa.ec.corelogic.model.SigningAttributeDomain
+import eu.europa.ec.corelogic.transactiondata.ScaPayment
 import eu.europa.ec.eudi.wallet.transactionLogging.model.TransactionalData
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.TransactionDataType
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.transactionData.Attribute
@@ -68,6 +69,18 @@ private fun Any.toTransactionPayloadDomain(displayName: String?): PresentationTr
             signatureRequests = transactionPayload.signatureRequests.map { signatureRequest ->
                 signatureRequest.toQesSignatureRequestDomain()
             },
+        )
+
+        // GRNET fork: TS12 card payments.
+        is ScaPayment -> PresentationTransactionDataDomain.Payment(
+            displayName = displayName,
+            credentialIds = transactionPayload.credentialIds.toList(),
+            transactionId = transactionPayload.payload.transactionId,
+            dateTime = transactionPayload.payload.dateTime,
+            payeeName = transactionPayload.payload.payee.name,
+            payeeId = transactionPayload.payload.payee.id,
+            amount = transactionPayload.payload.amount.content,
+            currency = transactionPayload.payload.currency,
         )
 
         else -> PresentationTransactionDataDomain.Unavailable

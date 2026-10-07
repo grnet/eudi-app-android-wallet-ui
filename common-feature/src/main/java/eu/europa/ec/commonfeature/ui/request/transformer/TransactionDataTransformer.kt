@@ -29,6 +29,7 @@ import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
 import eu.europa.ec.uilogic.component.wrap.ExpandableListItemUi
 import java.net.URI
+import java.util.Currency
 
 class TransactionDataTransformer(
     private val resourceProvider: ResourceProvider,
@@ -47,13 +48,23 @@ class TransactionDataTransformer(
             sectionId = sectionId,
             documentUrlsByItemId = documentUrlsByItemId,
         )
+        // GRNET fork: a payment is approved, not signed, and its payee and amount are what the
+        // user consents to (TS12 dynamic linking), so they are shown without a tap.
+        val paymentsOnly = transactions.all { it is PresentationTransactionDataDomain.Payment }
+        val hasPayment = transactions.any { it is PresentationTransactionDataDomain.Payment }
         return RequestTransactionDataUi(
-            title = resourceProvider.getString(R.string.request_transaction_section_title),
+            title = resourceProvider.getString(
+                if (paymentsOnly) R.string.request_transaction_payment_section_title
+                else R.string.request_transaction_section_title
+            ),
             details = ExpandableListItemUi.NestedListItem(
                 header = ListItemDataUi(
                     itemId = sectionId,
                     mainContentData = ListItemMainContentDataUi.Text(
-                        text = resourceProvider.getString(R.string.request_transaction_details_title),
+                        text = resourceProvider.getString(
+                            if (paymentsOnly) R.string.request_transaction_payment_details_title
+                            else R.string.request_transaction_details_title
+                        ),
                     ),
                     supportingContentData = ListItemSupportingContentDataUi.Text(
                         text = resourceProvider.getString(R.string.request_collapsed_supporting_text),
@@ -63,7 +74,7 @@ class TransactionDataTransformer(
                     ),
                 ),
                 nestedItems = rows,
-                isExpanded = false,
+                isExpanded = hasPayment,
             ),
             documentUrlsByItemId = documentUrlsByItemId.toMap(),
         )
@@ -87,11 +98,14 @@ class TransactionDataTransformer(
         documentUrlsByItemId: MutableMap<String, String>?,
     ): List<ExpandableListItemUi> {
         return buildList {
-            addField(
-                itemId = "$sectionId/framework",
-                labelRes = R.string.request_transaction_trust_framework,
-                value = resourceProvider.getString(R.string.request_transaction_trust_framework_value),
-            )
+            // GRNET fork: eIDAS 2.0 is the framework of the signatures, not of a payment.
+            if (transactions.any { it !is PresentationTransactionDataDomain.Payment }) {
+                addField(
+                    itemId = "$sectionId/framework",
+                    labelRes = R.string.request_transaction_trust_framework,
+                    value = resourceProvider.getString(R.string.request_transaction_trust_framework_value),
+                )
+            }
             transactions.forEachIndexed { index, transaction ->
                 val transactionId = "$sectionId/transaction-$index"
                 if (transactions.size > 1) {
@@ -248,6 +262,42 @@ class TransactionDataTransformer(
                         }
                     }
 
+                    // GRNET fork: TS12 card payments.
+                    is PresentationTransactionDataDomain.Payment -> {
+                        addField(
+                            itemId = "$transactionId/payee",
+                            labelRes = R.string.request_transaction_payee,
+                            value = transaction.payeeName,
+                        )
+                        addField(
+                            itemId = "$transactionId/amount",
+                            labelRes = R.string.request_transaction_amount,
+                            value = paymentAmount(
+                                amount = transaction.amount,
+                                currency = transaction.currency,
+                            ),
+                        )
+                        addField(
+                            itemId = "$transactionId/date-time",
+                            labelRes = R.string.request_transaction_date_time,
+                            value = transaction.dateTime,
+                        )
+                        addField(
+                            itemId = "$transactionId/payee-id",
+                            labelRes = R.string.request_transaction_payee_id,
+                            value = transaction.payeeId,
+                        )
+                        addField(
+                            itemId = "$transactionId/transaction-id",
+                            labelRes = R.string.request_transaction_id,
+                            value = transaction.transactionId,
+                        )
+                        addCredentialReferences(
+                            itemId = transactionId,
+                            credentialIds = transaction.credentialIds,
+                        )
+                    }
+
                     is PresentationTransactionDataDomain.Unavailable -> addField(
                         itemId = "$transactionId/unavailable",
                         labelRes = null,
@@ -385,6 +435,21 @@ class TransactionDataTransformer(
             else -> return qualifier
         }
         return resourceProvider.getString(labelRes)
+    }
+
+    /**
+     * GRNET fork: the amount with its ISO 4217 currency code, in the same form whatever the
+     * device's locale, e.g. "38.00 EUR". Minor units are added where the currency has them; a
+     * received digit is never dropped or rounded. An unknown currency or an amount that is not
+     * a number is shown as received.
+     */
+    private fun paymentAmount(amount: String, currency: String): String {
+        val value = amount.toBigDecimalOrNull() ?: return "$amount $currency"
+        val minorUnits = runCatching { Currency.getInstance(currency).defaultFractionDigits }
+            .getOrNull()
+            ?.takeIf { it >= 0 }
+            ?: return "${value.toPlainString()} $currency"
+        return "${value.setScale(maxOf(value.scale(), minorUnits)).toPlainString()} $currency"
     }
 
     private fun hashAlgorithm(oid: String): String {

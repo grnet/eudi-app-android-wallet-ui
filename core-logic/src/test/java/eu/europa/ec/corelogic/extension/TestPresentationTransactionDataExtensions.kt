@@ -21,6 +21,7 @@ import eu.europa.ec.corelogic.model.PresentationTransactionDataDomain
 import eu.europa.ec.corelogic.model.QesDocumentDigestDomain
 import eu.europa.ec.corelogic.model.QesSignatureRequestDomain
 import eu.europa.ec.corelogic.model.SigningAttributeDomain
+import eu.europa.ec.corelogic.transactiondata.ScaPaymentTransactionType
 import eu.europa.ec.eudi.wallet.transactionLogging.model.TransactionalData
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.TransactionDataType
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.transactionData.AccessControlMethod
@@ -567,6 +568,39 @@ class TestPresentationTransactionDataExtensions {
         // Then
         assertNull(result.displayName)
         assertNull(result.signatureQualifier)
+    }
+
+    // GRNET fork: a TS12 card payment, live and read back from the transaction log. wallet-core
+    // records transaction data as the JSON it received, so the log is built from the raw JSON.
+    @Test
+    fun `Given a payment, When mapped live and from the log, Then its fields survive unchanged`() {
+        // Given
+        val received = """{"type":"urn:eudi:sca:payment:1","credential_ids":["sca_card_dpc"],
+               "payload":{"transaction_id":"ff-1","date_time":"2026-10-06T02:37:21.010Z",
+                          "payee":{"name":"Fast Ferries","id":"fast-ferries-demo"},
+                          "currency":"EUR","amount":38.50}}"""
+        val payment = ScaPaymentTransactionType.parseOpenId4VpRequest(received)
+        val expected = PresentationTransactionDataDomain.Payment(
+            displayName = mockedDisplayName,
+            credentialIds = listOf("sca_card_dpc"),
+            transactionId = "ff-1",
+            dateTime = "2026-10-06T02:37:21.010Z",
+            payeeName = "Fast Ferries",
+            payeeId = "fast-ferries-demo",
+            amount = "38.50",
+            currency = "EUR",
+        )
+
+        // When
+        val live = mockedTransaction(payload = payment).toPresentationTransactionDataDomain()
+        val recorded = TransactionalData(JsonArray(listOf(Json.parseToJsonElement(received))))
+            .toPresentationTransactionDataDomains(
+                types = listOf(TransactionDataType(ScaPaymentTransactionType)),
+            )
+
+        // Then
+        assertEquals(expected, live)
+        assertEquals(listOf(expected.copy(displayName = null)), recorded)
     }
 
     //endregion
