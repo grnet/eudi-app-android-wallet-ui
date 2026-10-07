@@ -196,10 +196,12 @@ key attestation validation is disabled. If it is enabled, it must list this
 build's package, `eu.europa.ec.euidi.grnet.dev`, and the SHA-256 digest of
 **our** signing certificate, not upstream's.
 
-**The wallet-core library is GRNET's release of it**, `0.31.0-grnet.1`, from
+**The wallet-core library is GRNET's release of it**, `0.31.0-grnet.2`, from
 the Maven repository of
 [grnet/eudi-lib-android-wallet-core](https://github.com/grnet/eudi-lib-android-wallet-core)
-on GitHub Pages. It has no functional changes from upstream `0.31.0` yet; the
+on GitHub Pages. Its one functional change from upstream `0.31.0` gives the
+Android credential selector sharp 144 px credential icons, where upstream's
+48 px ones come out speckled; the fork's README lists its changes, and the
 fork exists so GRNET changes can ship as releases. `settings.gradle.kts` takes
 its three artifacts, in `*-grnet.N` versions, from that repository only, and
 `eudiWalletCore` in `gradle/libs.versions.toml` pins the version. To build
