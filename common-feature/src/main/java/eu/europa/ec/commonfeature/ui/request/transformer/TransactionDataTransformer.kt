@@ -98,7 +98,7 @@ class TransactionDataTransformer(
         documentUrlsByItemId: MutableMap<String, String>?,
     ): List<ExpandableListItemUi> {
         return buildList {
-            // GRNET fork: eIDAS is the framework of the signatures, not of a payment.
+            // GRNET fork: eIDAS 2.0 is the framework of the signatures, not of a payment.
             if (transactions.any { it !is PresentationTransactionDataDomain.Payment }) {
                 addField(
                     itemId = "$sectionId/framework",
