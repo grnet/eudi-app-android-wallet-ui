@@ -196,14 +196,24 @@ key attestation validation is disabled. If it is enabled, it must list this
 build's package, `eu.europa.ec.euidi.grnet.dev`, and the SHA-256 digest of
 **our** signing certificate, not upstream's.
 
-**The wallet-core library is GRNET's release of it**, `0.31.0-grnet.2`, from
+**The wallet-core library is GRNET's release of it**, `0.31.0-grnet.3`, from
 the Maven repository of
 [grnet/eudi-lib-android-wallet-core](https://github.com/grnet/eudi-lib-android-wallet-core)
-on GitHub Pages. Its one functional change from upstream `0.31.0` gives the
-Android credential selector sharp 144 px credential icons, where upstream's
-48 px ones come out speckled; the fork's README lists its changes, and the
-fork exists so GRNET changes can ship as releases. `settings.gradle.kts` takes
+on GitHub Pages. Its changes from upstream `0.31.0` are to the Android
+credential selector: sharp 144 px credential icons, where upstream's 48 px
+ones come out speckled, and a TS12 payment shown as a payment, with the payee,
+the amount and the card, rather than the DPC as an identity document. The card
+is shown by its own name, last four digits and card art, which its issuer
+delivers with it as the WE BUILD DPC rulebook specifies. The
+fork's README lists them, and the fork exists so GRNET changes can ship as
+releases. `settings.gradle.kts` takes
 its three artifacts, in `*-grnet.N` versions, from that repository only, and
 `eudiWalletCore` in `gradle/libs.versions.toml` pins the version. To build
 against a local build of the library, pass `-PgrnetMavenUrl=file:///path/to/repo`;
 the library's own README says how to produce one.
+
+wallet-core in turn takes GRNET's release of the OpenID4VCI library,
+`0.14.1-grnet.1`, which keeps the card display the issuer sends. It comes from
+[grnet/eudi-lib-jvm-openid4vci-kt](https://github.com/grnet/eudi-lib-jvm-openid4vci-kt)'s
+own Maven repository, which `settings.gradle.kts` also lists;
+`-PgrnetOpenId4VciMavenUrl=file:///path/to/repo` points it at a local build.
