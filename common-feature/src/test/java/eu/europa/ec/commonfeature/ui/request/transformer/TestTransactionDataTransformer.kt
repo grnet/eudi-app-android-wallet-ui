@@ -15,11 +15,13 @@
  */
 package eu.europa.ec.commonfeature.ui.request.transformer
 
+import eu.europa.ec.commonfeature.ui.request.model.RequestPaymentUi
 import eu.europa.ec.commonfeature.ui.request.model.RequestTransactionDataUi
 import eu.europa.ec.corelogic.model.DocumentChecksumDomain
 import eu.europa.ec.corelogic.model.PresentationTransactionDataDomain
 import eu.europa.ec.corelogic.model.QesSignatureRequestDomain
 import eu.europa.ec.corelogic.model.SigningAttributeDomain
+import eu.europa.ec.eudi.wallet.card.CardDisplay
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.testfeature.util.StringResourceProviderMocker.mockTransactionDataStrings
 import eu.europa.ec.testfeature.util.mockedRequestCollapsedSupportingText
@@ -32,6 +34,7 @@ import eu.europa.ec.uilogic.component.ListItemDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
 import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
+import eu.europa.ec.uilogic.component.PaymentCardUi
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertNull
@@ -565,7 +568,9 @@ class TestTransactionDataTransformer {
     //
     // Case 14 Expected Result:
     // An expanded payment section: payee and amount first, the amount in minor units with its
-    // currency code, and no eIDAS trust framework row.
+    // currency code, the date and time in the device's time zone (UTC in tests), no eIDAS trust
+    // framework row, and no DCQL query id. The payment itself is summarised, without a card when
+    // the wallet has no payment card for it.
     @Test
     fun `Given a payment, When transformToUi is called, Then an expanded payment section is returned`() {
         // When
@@ -579,14 +584,14 @@ class TestTransactionDataTransformer {
             listOf(
                 "Payee" to "Fast Ferries",
                 "Amount" to "38.00 EUR",
-                "Date and time" to "2026-10-06T02:37:21.010Z",
+                "Date and time" to "06 October 2026 - 02:37",
                 "Payee ID" to "fast-ferries-demo",
                 "Transaction ID" to "ff-1791254240824-xqei0x",
-                "Requested credentials" to "sca_card_dpc",
             ),
             section.rows().map { row -> row.overlineText to row.text() },
         )
         assertTrue(section.documentUrlsByItemId.isEmpty())
+        assertEquals(RequestPaymentUi(amount = "38.00 EUR", payee = "Fast Ferries", card = null), section.payment)
     }
 
     // GRNET fork, Case 15:
@@ -612,7 +617,7 @@ class TestTransactionDataTransformer {
             transform(listOf(minimal.copy(amount = "1.5", currency = "XYZ")))!!.values("Amount"),
         )
         assertEquals(
-            listOf("Payee", "Amount", "Requested credentials"),
+            listOf("Payee", "Amount"),
             transform(listOf(minimal))!!.rows().map { row -> row.overlineText },
         )
     }
@@ -635,6 +640,40 @@ class TestTransactionDataTransformer {
         assertTrue(section.details.isExpanded)
         assertEquals(listOf("eIDAS"), section.values("Trust framework"))
         assertEquals(listOf("38.00 EUR"), section.values("Amount"))
+    }
+
+    // GRNET fork, Case 17:
+    // 1. A payment bound by its credential_ids to the query a payment card matched.
+    // 2. The same payment, with the card matching another query.
+    //
+    // Case 17 Expected Result:
+    // The payment is summarised with the card it is bound to, and with no card when the card is
+    // not the one bound.
+    @Test
+    fun `Given a payment bound to a payment card, When transformToUi is called, Then the summary shows that card`() {
+        val card = PaymentCardUi(
+            name = "Gold Mastercard",
+            lastFour = "9269",
+            expiry = "10/28",
+            networkName = "Mastercard",
+            typeLabel = "Credit card",
+            cardArt = CardDisplay.Images(listOf("DEFAULT" to "https://bank.example/card.png")),
+        )
+        val match = mockedValidPidWithBasicFieldsRequestMatch.copy(transactionData = listOf(mockedPayment))
+
+        val bound = transformer.transformToUi(
+            matches = listOf(match.copy(queryId = "sca_card_dpc")),
+            sectionId = mockedSectionId,
+            paymentCards = mapOf(match.documentId to card),
+        )!!
+        val notBound = transformer.transformToUi(
+            matches = listOf(match.copy(queryId = "pid")),
+            sectionId = mockedSectionId,
+            paymentCards = mapOf(match.documentId to card),
+        )!!
+
+        assertEquals(RequestPaymentUi(amount = "38.00 EUR", payee = "Fast Ferries", card = card), bound.payment)
+        assertNull(notBound.payment?.card)
     }
 
     //endregion

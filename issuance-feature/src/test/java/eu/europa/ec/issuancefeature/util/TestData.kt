@@ -223,8 +223,8 @@ internal val mockedSdJwtPidClaims = listOf(
     ExpandableListItemUi.SingleListItem(
         header = ListItemDataUi(
             itemId = sdJwtItemId(mockedSdJwtPidId, ClaimPathSegment.Key("exp")),
-            overlineText = "exp",
-            mainContentData = ListItemMainContentDataUi.Text(text = "1755730800")
+            overlineText = "Expires",
+            mainContentData = ListItemMainContentDataUi.Text(text = "20 August 2025 - 23:00")
         )
     ),
     ExpandableListItemUi.SingleListItem(
@@ -244,8 +244,8 @@ internal val mockedSdJwtPidClaims = listOf(
     ExpandableListItemUi.SingleListItem(
         header = ListItemDataUi(
             itemId = sdJwtItemId(mockedSdJwtPidId, ClaimPathSegment.Key("iat")),
-            overlineText = "iat",
-            mainContentData = ListItemMainContentDataUi.Text(text = "1747954800")
+            overlineText = "Issued",
+            mainContentData = ListItemMainContentDataUi.Text(text = "22 May 2025 - 23:00")
         )
     ),
     ExpandableListItemUi.SingleListItem(

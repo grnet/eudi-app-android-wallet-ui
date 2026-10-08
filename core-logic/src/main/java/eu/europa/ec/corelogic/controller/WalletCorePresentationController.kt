@@ -29,6 +29,7 @@ import eu.europa.ec.corelogic.extension.toRegistrationStatusDomain
 import eu.europa.ec.corelogic.model.AuthenticationData
 import eu.europa.ec.corelogic.model.PresentationCombinationDomain
 import eu.europa.ec.corelogic.model.PresentationMatchDomain
+import eu.europa.ec.corelogic.model.PresentationTransactionDataDomain
 import eu.europa.ec.corelogic.model.PresentationSelectionDomain
 import eu.europa.ec.corelogic.model.RegistrationStatusDomain
 import eu.europa.ec.corelogic.model.RelyingPartyDomain
@@ -154,6 +155,13 @@ interface WalletCorePresentationController {
     val disclosedDocuments: List<PresentationSelectionDomain>?
 
     /**
+     * GRNET fork: the transaction data bound to [disclosedDocuments], such as the TS12 card
+     * payment the user approved, so that it can be shown once the response is sent.
+     * */
+    val disclosedTransactionData: List<PresentationTransactionDataDomain>
+        get() = emptyList()
+
+    /**
      * Verifier name so it can be retrieve across screens
      * */
     val verifierName: String?
@@ -263,6 +271,14 @@ class WalletCorePresentationControllerImpl(
     private lateinit var _config: PresentationControllerConfig
 
     override var disclosedDocuments: List<PresentationSelectionDomain>? = null
+
+    override val disclosedTransactionData: List<PresentationTransactionDataDomain>
+        get() = disclosedDocuments.orEmpty()
+            .mapNotNull { selection ->
+                matchByKey[Triple(selection.documentId, selection.credentialId, selection.queryId)]
+            }
+            .flatMap { match -> PresentationMatchDomain.from(match).transactionData }
+            .distinct()
 
     // The Wallet Core SDK request, held from the onRequestReceived callback until send.
     private var processedRequest: RequestProcessor.ProcessedRequest.Success? = null

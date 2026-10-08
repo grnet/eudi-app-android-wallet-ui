@@ -32,6 +32,7 @@ import eu.europa.ec.uilogic.component.ListItemDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
 import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
+import eu.europa.ec.uilogic.component.PaymentCardUi
 import eu.europa.ec.uilogic.component.RelyingPartyDataUi
 import eu.europa.ec.uilogic.component.content.ContentHeaderConfig
 import eu.europa.ec.uilogic.component.wrap.ExpandableListItemUi
@@ -44,6 +45,7 @@ sealed class DocumentIssuanceSuccessInteractorGetUiItemsPartialState {
         val documentsUi: List<ExpandableListItemUi.NestedListItem>,
         val headerConfig: ContentHeaderConfig,
         val bannerText: String,
+        val paymentCards: Map<String, PaymentCardUi> = emptyMap(),
     ) : DocumentIssuanceSuccessInteractorGetUiItemsPartialState()
 
     data class Failed(
@@ -68,6 +70,7 @@ class DocumentIssuanceSuccessInteractorImpl(
         return flow {
 
             val documentsUi = mutableListOf<ExpandableListItemUi.NestedListItem>()
+            val paymentCards = mutableMapOf<String, PaymentCardUi>()
 
             var issuerName =
                 resourceProvider.getString(R.string.issuance_success_header_issuer_default_name)
@@ -109,10 +112,14 @@ class DocumentIssuanceSuccessInteractorImpl(
                         )
                     }
 
+                    // GRNET fork: a payment card is shown as the card, by its own name.
+                    val paymentCard = PaymentCardUi.from(document)
+                    paymentCard?.let { paymentCards[documentId] = it }
+
                     val documentUi = ExpandableListItemUi.NestedListItem(
                         header = ListItemDataUi(
                             itemId = documentId,
-                            mainContentData = ListItemMainContentDataUi.Text(text = document.name),
+                            mainContentData = ListItemMainContentDataUi.Text(text = paymentCard?.name ?: document.name),
                             supportingContentData = ListItemSupportingContentDataUi.Text(
                                 text = resourceProvider.getString(R.string.document_success_collapsed_supporting_text),
                             ),
@@ -149,7 +156,15 @@ class DocumentIssuanceSuccessInteractorImpl(
                 DocumentIssuanceSuccessInteractorGetUiItemsPartialState.Success(
                     documentsUi = documentsUi,
                     headerConfig = headerConfig,
-                    bannerText = resourceProvider.getString(R.string.issuance_success_banner_text),
+                    bannerText = resourceProvider.getString(
+                        // GRNET fork: "Card added", when what was added is payment cards only.
+                        if (documentsUi.isNotEmpty() && paymentCards.size == documentsUi.size) {
+                            R.string.issuance_success_banner_text_payment_card
+                        } else {
+                            R.string.issuance_success_banner_text
+                        }
+                    ),
+                    paymentCards = paymentCards,
                 )
             )
         }.safeAsync {

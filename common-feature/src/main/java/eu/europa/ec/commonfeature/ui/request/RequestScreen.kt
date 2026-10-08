@@ -33,9 +33,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.Dp
@@ -48,6 +50,7 @@ import eu.europa.ec.commonfeature.ui.request.model.RelyingPartyHeaderUi
 import eu.europa.ec.commonfeature.ui.request.model.RequestCombinationUi
 import eu.europa.ec.commonfeature.ui.request.model.RequestDataUi
 import eu.europa.ec.commonfeature.ui.request.model.RequestDocumentItemUi
+import eu.europa.ec.commonfeature.ui.request.model.RequestPaymentUi
 import eu.europa.ec.commonfeature.ui.request.model.RequestTransactionDataUi
 import eu.europa.ec.commonfeature.util.TestTag
 import eu.europa.ec.corelogic.model.ClaimDomain
@@ -63,6 +66,7 @@ import eu.europa.ec.uilogic.component.ListItemDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
 import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
+import eu.europa.ec.uilogic.component.PaymentCardFace
 import eu.europa.ec.uilogic.component.RelyingParty
 import eu.europa.ec.uilogic.component.RelyingPartyDataUi
 import eu.europa.ec.uilogic.component.SectionTitle
@@ -85,6 +89,7 @@ import eu.europa.ec.uilogic.component.wrap.TextStyleKey
 import eu.europa.ec.uilogic.component.wrap.WrapExpandableListItem
 import eu.europa.ec.uilogic.component.wrap.WrapModalBottomSheet
 import eu.europa.ec.uilogic.component.wrap.WrapSelectableCard
+import eu.europa.ec.uilogic.component.wrap.WrapText
 import eu.europa.ec.uilogic.extension.applyTestTag
 import eu.europa.ec.uilogic.extension.finish
 import eu.europa.ec.uilogic.extension.openUrl
@@ -134,7 +139,10 @@ fun RequestScreen(
                         )
                     },
                 ),
-                primaryButtonText = stringResource(R.string.request_sticky_button_text),
+                // GRNET fork: a payment is approved, for its amount.
+                primaryButtonText = state.requestDataUi.selectedCombination?.transactionData?.payment
+                    ?.let { stringResource(R.string.request_sticky_button_text_payment, it.amount) }
+                    ?: stringResource(R.string.request_sticky_button_text),
                 cancelButtonText = stringResource(R.string.request_cancel_button_text),
                 primaryButtonEnabled = !state.isLoading && state.allowShare,
                 onPrimaryButtonClick = { viewModel.setEvent(Event.StickyButtonPressed) },
@@ -373,16 +381,21 @@ private fun DisplayRequestContent(
         is RequestDataUi.Single -> Column(
             modifier = modifier,
         ) {
-            RequestedDataSectionTitle(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = SPACING_SMALL.dp),
-            )
+            // GRNET fork: a payment comes first, and the data shared with it after it.
+            val isPayment = requestDataUi.combination.transactionData?.payment != null
+            if (!isPayment) {
+                RequestedDataSectionTitle(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = SPACING_SMALL.dp),
+                )
+            }
             CombinationContent(
                 modifier = Modifier.fillMaxWidth(),
                 combination = requestDataUi.combination,
                 claimsAreSelectable = claimsAreSelectable,
                 transactionTitleStartPadding = 0.dp,
+                showRequestedDataTitle = isPayment,
                 onClaimClick = onClaimClick,
                 onCredentialExpansionChange = onCredentialExpansionChange,
                 onTransactionExpansionChange = onTransactionExpansionChange,
@@ -478,11 +491,9 @@ private fun CombinationContent(
     onCredentialExpansionChange: (String) -> Unit,
     onTransactionExpansionChange: (String, String) -> Unit,
     onTransactionDocumentClick: (String, String) -> Unit,
+    showRequestedDataTitle: Boolean = false,
 ) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp),
-    ) {
+    val requestItems: @Composable () -> Unit = {
         DisplayRequestItems(
             modifier = Modifier.fillMaxWidth(),
             requestDocuments = combination.documents,
@@ -490,6 +501,8 @@ private fun CombinationContent(
             onClaimClick = onClaimClick,
             onExpansionChange = onCredentialExpansionChange,
         )
+    }
+    val transactionData: @Composable () -> Unit = {
         combination.transactionData?.let { safeTransactionData ->
             TransactionDataSection(
                 modifier = Modifier.fillMaxWidth(),
@@ -502,6 +515,24 @@ private fun CombinationContent(
                     onTransactionDocumentClick(safeTransactionData.details.header.itemId, itemId)
                 },
             )
+        }
+    }
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp),
+    ) {
+        // GRNET fork: a payment is what the user approves, so it comes first, and the data
+        // shared with it after it.
+        if (combination.transactionData?.payment != null) {
+            transactionData()
+            if (showRequestedDataTitle) {
+                RequestedDataSectionTitle(modifier = Modifier.fillMaxWidth())
+            }
+            requestItems()
+        } else {
+            requestItems()
+            transactionData()
         }
     }
 }
@@ -572,6 +603,14 @@ private fun TransactionDataSection(
                 maxLines = Int.MAX_VALUE,
             ),
         )
+        transactionData.payment?.let { safePayment ->
+            PaymentSummary(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = SPACING_SMALL.dp),
+                payment = safePayment,
+            )
+        }
         WrapExpandableListItem(
             modifier = Modifier.fillMaxWidth(),
             header = transactionData.details.header,
@@ -585,6 +624,49 @@ private fun TransactionDataSection(
             colors = colors,
             throttleClicks = false,
         )
+    }
+}
+
+/**
+ * GRNET fork: what the user approves, at a glance: the amount, the payee and the card the payment
+ * is bound to (TS12 dynamic linking).
+ */
+@Composable
+private fun PaymentSummary(
+    modifier: Modifier,
+    payment: RequestPaymentUi,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        WrapText(
+            text = payment.amount,
+            textConfig = TextConfig(
+                styleKey = TextStyleKey.HeadlineMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                maxLines = Int.MAX_VALUE,
+            ),
+        )
+        WrapText(
+            text = stringResource(R.string.request_transaction_payment_to, payment.payee),
+            textConfig = TextConfig(
+                styleKey = TextStyleKey.BodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = Int.MAX_VALUE,
+            ),
+        )
+        payment.card?.let { safeCard ->
+            PaymentCardFace(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = SPACING_SMALL.dp),
+                card = safeCard,
+            )
+        }
     }
 }
 

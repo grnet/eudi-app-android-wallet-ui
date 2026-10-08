@@ -23,11 +23,13 @@ import eu.europa.ec.businesslogic.provider.UuidProvider
 import eu.europa.ec.commonfeature.extension.toExpandableListItems
 import eu.europa.ec.commonfeature.interactor.ScopedPresentationInteractor
 import eu.europa.ec.commonfeature.interactor.ScopedPresentationInteractorDelegate
+import eu.europa.ec.commonfeature.ui.request.transformer.formatPaymentAmount
 import eu.europa.ec.commonfeature.util.transformPathsToDomainClaims
 import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
 import eu.europa.ec.corelogic.controller.WalletCorePresentationController
 import eu.europa.ec.corelogic.extension.toClaimPaths
 import eu.europa.ec.corelogic.model.ClaimItemId
+import eu.europa.ec.corelogic.model.PresentationTransactionDataDomain
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
@@ -36,6 +38,7 @@ import eu.europa.ec.uilogic.component.ListItemDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
 import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
+import eu.europa.ec.uilogic.component.PaymentCardUi
 import eu.europa.ec.uilogic.component.RelyingPartyDataUi
 import eu.europa.ec.uilogic.component.content.ContentHeaderConfig
 import eu.europa.ec.uilogic.component.wrap.ExpandableListItemUi
@@ -48,6 +51,7 @@ sealed class PresentationSuccessInteractorGetUiItemsPartialState {
         val documentsUi: List<ExpandableListItemUi.NestedListItem>,
         val headerConfig: ContentHeaderConfig,
         val bannerText: String,
+        val paymentCards: Map<String, PaymentCardUi> = emptyMap(),
     ) : PresentationSuccessInteractorGetUiItemsPartialState()
 
     data class Failed(
@@ -88,6 +92,13 @@ class PresentationSuccessInteractorImpl(
         return flow {
 
             val documentsUi = mutableListOf<ExpandableListItemUi.NestedListItem>()
+            val paymentCards = mutableMapOf<String, PaymentCardUi>()
+
+            // GRNET fork: the TS12 card payment the user approved, if that is what this was.
+            val payment = walletCorePresentationController.disclosedTransactionData
+                .filterIsInstance<PresentationTransactionDataDomain.Payment>()
+                .distinct()
+                .singleOrNull()
 
             val verifierName = walletCorePresentationController.verifierName
 
@@ -122,13 +133,21 @@ class PresentationSuccessInteractorImpl(
                     }
 
                     if (disclosedClaimsUi.isNotEmpty()) {
+                        val itemId = ClaimItemId.DocumentHeader(
+                            docId = documentId,
+                            queryId = selection.queryId,
+                        ).encode()
+
+                        // GRNET fork: a payment card is shown as the card, by its own name.
+                        val paymentCard = PaymentCardUi.from(document)
+                        paymentCard?.let { paymentCards[itemId] = it }
+
                         val disclosedDocumentUi = ExpandableListItemUi.NestedListItem(
                             header = ListItemDataUi(
-                                itemId = ClaimItemId.DocumentHeader(
-                                    docId = documentId,
-                                    queryId = selection.queryId,
-                                ).encode(),
-                                mainContentData = ListItemMainContentDataUi.Text(text = document.name),
+                                itemId = itemId,
+                                mainContentData = ListItemMainContentDataUi.Text(
+                                    text = paymentCard?.name ?: document.name
+                                ),
                                 supportingContentData = ListItemSupportingContentDataUi.Text(
                                     text = resourceProvider.getString(R.string.document_success_collapsed_supporting_text),
                                 ),
@@ -146,10 +165,18 @@ class PresentationSuccessInteractorImpl(
                 }
             }
 
-            val headerConfigDescription = if (documentsUi.isEmpty()) {
-                resourceProvider.getString(R.string.document_success_header_description_when_error)
-            } else {
-                resourceProvider.getString(R.string.document_success_header_description)
+            val headerConfigDescription = when {
+                documentsUi.isEmpty() -> resourceProvider.getString(R.string.document_success_header_description_when_error)
+
+                // GRNET fork: what the user approved. The wallet does not learn whether the
+                // payment then went through, so it says "approved", never "paid".
+                payment != null -> resourceProvider.getString(
+                    R.string.document_success_header_description_payment,
+                    formatPaymentAmount(amount = payment.amount, currency = payment.currency),
+                    payment.payeeName,
+                )
+
+                else -> resourceProvider.getString(R.string.document_success_header_description)
             }
             val headerConfig = ContentHeaderConfig(
                 description = headerConfigDescription,
@@ -168,7 +195,11 @@ class PresentationSuccessInteractorImpl(
                 PresentationSuccessInteractorGetUiItemsPartialState.Success(
                     documentsUi = documentsUi,
                     headerConfig = headerConfig,
-                    bannerText = resourceProvider.getString(R.string.document_success_banner_text),
+                    bannerText = resourceProvider.getString(
+                        if (payment != null) R.string.document_success_banner_text_payment
+                        else R.string.document_success_banner_text
+                    ),
+                    paymentCards = paymentCards,
                 )
             )
         }.safeAsync {

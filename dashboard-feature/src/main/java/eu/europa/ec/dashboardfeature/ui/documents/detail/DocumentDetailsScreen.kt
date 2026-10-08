@@ -60,6 +60,7 @@ import eu.europa.ec.uilogic.component.IssuerDetailsCardDataUi
 import eu.europa.ec.uilogic.component.ListItemDataUi
 import eu.europa.ec.uilogic.component.ListItemLeadingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
+import eu.europa.ec.uilogic.component.PaymentCardFace
 import eu.europa.ec.uilogic.component.SectionTitle
 import eu.europa.ec.uilogic.component.content.BroadcastAction
 import eu.europa.ec.uilogic.component.content.ContentScreen
@@ -310,6 +311,14 @@ private fun Content(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(SPACING_EXTRA_LARGE.dp)
             ) {
+                // GRNET fork: a payment card is shown as the card.
+                state.paymentCard?.let { safePaymentCard ->
+                    PaymentCardFace(
+                        modifier = Modifier.fillMaxWidth(),
+                        card = safePaymentCard,
+                    )
+                }
+
                 state.issuerDetails?.let { safeIssuerDetails ->
                     IssuerDetails(
                         modifier = Modifier.fillMaxWidth(),
