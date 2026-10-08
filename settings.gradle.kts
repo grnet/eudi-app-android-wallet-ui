@@ -57,6 +57,22 @@ dependencyResolutionManagement {
                 ).forEach { includeVersionByRegex("eu\\.europa\\.ec\\.eudi", it, ".*-grnet\\..*") }
             }
         }
+        // GRNET fork: GRNET's releases of the OpenID4VCI library, which GRNET's wallet-core
+        // depends on, come from that library's own Maven repository, and only from there.
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = "grnetOpenId4Vci"
+                    url = uri(
+                        providers.gradleProperty("grnetOpenId4VciMavenUrl")
+                            .getOrElse("https://grnet.github.io/eudi-lib-jvm-openid4vci-kt/maven/")
+                    )
+                }
+            }
+            filter {
+                includeVersionByRegex("eu\\.europa\\.ec\\.eudi", "eudi-lib-jvm-openid4vci-kt", ".*-grnet\\..*")
+            }
+        }
     }
 }
 
