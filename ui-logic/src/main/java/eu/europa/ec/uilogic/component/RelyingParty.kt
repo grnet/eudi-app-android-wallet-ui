@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -118,10 +119,14 @@ fun RelyingParty(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             relyingPartyData.logo?.let { safeLogo ->
+                // GRNET fork: no taller than STACKED_LOGO_MAX_HEIGHT, so that a square logo is not
+                // drawn half the screen wide; a wide one is drawn as before.
                 RelyingPartyLogo(
-                    modifier = Modifier.fillMaxWidth(0.5f),
+                    modifier = Modifier
+                        .fillMaxWidth(0.5f)
+                        .heightIn(max = STACKED_LOGO_MAX_HEIGHT.dp),
                     logo = safeLogo,
-                    contentScale = ContentScale.FillWidth,
+                    contentScale = ContentScale.Fit,
                 )
                 VSpacer.Small()
             }
@@ -135,6 +140,9 @@ fun RelyingParty(
         }
     }
 }
+
+/** GRNET fork: the height of a logo in [RelyingPartyLayout.StackedCentered], at most. */
+private const val STACKED_LOGO_MAX_HEIGHT = 72
 
 @Composable
 private fun RelyingPartyLogo(
