@@ -19,6 +19,8 @@ package eu.europa.ec.commonfeature.util
 import eu.europa.ec.businesslogic.extension.decodeFromBase64ToString
 import eu.europa.ec.businesslogic.extension.encodeToBase64String
 import eu.europa.ec.businesslogic.provider.UuidProvider
+import eu.europa.ec.businesslogic.util.FULL_DATETIME_PATTERN_24H_SEPARATED_BY_DASH
+import eu.europa.ec.businesslogic.util.formatInstant
 import eu.europa.ec.businesslogic.util.safeLet
 import eu.europa.ec.businesslogic.util.toDateFormatted
 import eu.europa.ec.corelogic.extension.getLocalizedClaimName
@@ -64,6 +66,17 @@ fun keyIsSignature(key: String): Boolean {
 
 private fun keyIsUserPseudonym(key: String): Boolean {
     return key == DocumentJsonKeys.USER_PSEUDONYM
+}
+
+/**
+ * GRNET fork: the title of an SD-JWT VC's `iat`, `exp` or `nbf`, the JWT claims that are times in
+ * seconds since the epoch (RFC 7519 §4.1), or `null` for any other claim.
+ */
+private fun jwtTimeTitle(key: String): Int? = when (key) {
+    "iat" -> R.string.document_details_claim_iat
+    "exp" -> R.string.document_details_claim_exp
+    "nbf" -> R.string.document_details_claim_nbf
+    else -> null
 }
 
 private fun keyIsGender(key: String): Boolean {
@@ -269,7 +282,15 @@ fun createKeyValue(
             val date: String? = (item as? String)?.toDateFormatted()
                 ?: (item as? LocalDate)?.toDateFormatted()
 
+            // GRNET fork: an SD-JWT VC's iat, exp and nbf are shown as dates, not as numbers.
+            val jwtTimeTitle = jwtTimeTitle(groupKey).takeIf { childKey.isEmpty() && item is Number }
+            val jwtTime = jwtTimeTitle?.let {
+                Instant.ofEpochSecond((item as Number).toLong())
+                    .formatInstant(FULL_DATETIME_PATTERN_24H_SEPARATED_BY_DASH)
+            }
+
             val formattedValue = when {
+                jwtTime != null -> jwtTime
                 base64Image != null -> base64Image
                 keyIsGender(groupKey) -> getGenderValue(item.toString(), resourceProvider)
                 keyIsUserPseudonym(groupKey) -> item.toString().decodeFromBase64ToString()
@@ -288,7 +309,7 @@ fun createKeyValue(
                 ClaimDomain.Primitive(
                     key = childKey.ifEmpty { groupKey },
                     displayTitle = childKey.ifEmpty {
-                        getReadableNameFromIdentifier(
+                        jwtTimeTitle?.let { resourceProvider.getString(it) } ?: getReadableNameFromIdentifier(
                             claimMetaData = claimMetaData,
                             userLocale = resourceProvider.getLocale(),
                             fallback = groupKey

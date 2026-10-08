@@ -38,9 +38,11 @@ import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.ListItemDataUi
+import eu.europa.ec.uilogic.component.ListItemLeadingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
 import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
+import eu.europa.ec.uilogic.component.PaymentCardUi
 import eu.europa.ec.uilogic.component.ThemeColorKey
 import eu.europa.ec.uilogic.component.wrap.ExpandableListItemUi
 
@@ -51,6 +53,8 @@ object RequestTransformer {
      * [claimsAreSelectable] = checkbox vs read-only leaves.
      * [overaskedClaims] = the request's claims not covered by the relying party's registration;
      * their rows get the "not registered" mark.
+     * [paymentCards] = GRNET fork: the payment cards among [storageDocuments], by document id,
+     * shown as cards.
      */
     fun transformToCombinationsUi(
         storageDocuments: List<IssuedDocument>,
@@ -59,6 +63,7 @@ object RequestTransformer {
         combinationsDomain: List<PresentationCombinationDomain>,
         claimsAreSelectable: Boolean,
         overaskedClaims: List<OveraskedClaimDomain>,
+        paymentCards: Map<String, PaymentCardUi> = emptyMap(),
     ): Result<List<RequestCombinationUi>> {
         return runCatching {
             combinationsDomain.mapIndexed { combinationIndex, combinationDomain ->
@@ -78,6 +83,7 @@ object RequestTransformer {
                     documentsDomain = documentsDomain,
                     resourceProvider = resourceProvider,
                     claimsAreSelectable = claimsAreSelectable,
+                    paymentCards = paymentCards,
                 )
                 val representedDomainMatches = representedMatches.map { (match, _) -> match }
                 val hasTransactionData = representedDomainMatches.any { match ->
@@ -87,6 +93,7 @@ object RequestTransformer {
                     TransactionDataTransformer(resourceProvider = resourceProvider).transformToUi(
                         matches = representedDomainMatches,
                         sectionId = "transaction-data:${uuidProvider.provideUuid()}:$combinationIndex",
+                        paymentCards = paymentCards,
                     )
                 } else {
                     null
@@ -165,13 +172,16 @@ object RequestTransformer {
      * Builds the request-screen rows.
      * [claimsAreSelectable] = selectable (checkbox) vs read-only
      * leaves; the document headers are the same either way.
+     * [paymentCards] = GRNET fork: payment cards by document id, shown as the card.
      */
     fun transformToUiItems(
         documentsDomain: List<DocumentPayloadDomain>,
         resourceProvider: ResourceProvider,
         claimsAreSelectable: Boolean,
+        paymentCards: Map<String, PaymentCardUi> = emptyMap(),
     ): List<RequestDocumentItemUi> {
         return documentsDomain.map { documentDomain ->
+            val paymentCard = paymentCards[documentDomain.docId]
             RequestDocumentItemUi(
                 domainPayload = documentDomain,
                 headerUi = ExpandableListItemUi.NestedListItem(
@@ -180,10 +190,16 @@ object RequestTransformer {
                             docId = documentDomain.docId,
                             queryId = documentDomain.queryId,
                         ).encode(),
-                        mainContentData = ListItemMainContentDataUi.Text(text = documentDomain.docName),
+                        mainContentData = ListItemMainContentDataUi.Text(
+                            text = paymentCard?.name ?: documentDomain.docName
+                        ),
+                        overlineText = paymentCard?.summary,
                         supportingContentData = ListItemSupportingContentDataUi.Text(
                             text = resourceProvider.getString(R.string.request_collapsed_supporting_text),
                         ),
+                        leadingContentData = paymentCard?.let {
+                            ListItemLeadingContentDataUi.PaymentCard(card = it)
+                        },
                         trailingContentData = ListItemTrailingContentDataUi.Icon(
                             iconData = AppIcons.KeyboardArrowDown
                         )

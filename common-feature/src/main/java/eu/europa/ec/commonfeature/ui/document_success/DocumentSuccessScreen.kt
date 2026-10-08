@@ -54,6 +54,7 @@ import eu.europa.ec.uilogic.component.ListItemDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
 import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
+import eu.europa.ec.uilogic.component.PaymentCardFace
 import eu.europa.ec.uilogic.component.RelyingParty
 import eu.europa.ec.uilogic.component.RelyingPartyDataUi
 import eu.europa.ec.uilogic.component.RelyingPartyLayout
@@ -259,6 +260,16 @@ private fun Content(
                 }
 
                 state.items.forEachIndexed { index, successItem ->
+                    // GRNET fork: a payment card is shown as the card, above its data.
+                    state.paymentCards[successItem.header.itemId]?.let { safePaymentCard ->
+                        PaymentCardFace(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = SPACING_SMALL.dp),
+                            card = safePaymentCard,
+                        )
+                    }
+
                     WrapExpandableListItem(
                         modifier = Modifier
                             .applyTestTag(TestTag.DocumentSuccessScreen.successDocument(index = index))

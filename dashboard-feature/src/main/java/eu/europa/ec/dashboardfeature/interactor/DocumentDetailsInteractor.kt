@@ -44,6 +44,7 @@ import eu.europa.ec.eudi.wallet.document.format.MsoMdocFormat
 import eu.europa.ec.eudi.wallet.document.format.SdJwtVcFormat
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.component.IssuerDetailsCardDataUi
+import eu.europa.ec.uilogic.component.PaymentCardUi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -69,6 +70,7 @@ sealed class DocumentDetailsInteractorPartialState {
         val documentDetailsDomain: DocumentDetailsDomain,
         val documentIsBookmarked: Boolean,
         val documentCredentialsInfoUi: DocumentCredentialsInfoUi?,
+        val paymentCard: PaymentCardUi? = null,
     ) : DocumentDetailsInteractorPartialState()
 
     data class Failure(val error: String) : DocumentDetailsInteractorPartialState()
@@ -158,7 +160,12 @@ class DocumentDetailsInteractorImpl(
                     )
                 val documentDetailsDomain = documentDetailsDomainResult.getOrThrow()
 
-                val documentCredentialsInfo = if (prefKeys.getShowBatchIssuanceCounter()) {
+                // GRNET fork: a payment card, shown as the card its issuer describes.
+                val paymentCard = PaymentCardUi.from(safeIssuedDocument)
+
+                // GRNET fork: a payment card is reused, not used up, so its count of instances
+                // means nothing to the user.
+                val documentCredentialsInfo = if (prefKeys.getShowBatchIssuanceCounter() && paymentCard == null) {
                     createDocumentCredentialsInfoUi(
                         document = safeIssuedDocument,
                         resourceProvider = resourceProvider
@@ -200,6 +207,7 @@ class DocumentDetailsInteractorImpl(
                         documentDetailsDomain = documentDetailsDomain,
                         documentIsBookmarked = documentIsBookmarked,
                         documentCredentialsInfoUi = documentCredentialsInfo,
+                        paymentCard = paymentCard,
                     )
                 )
             } ?: emit(DocumentDetailsInteractorPartialState.Failure(error = genericErrorMsg))
