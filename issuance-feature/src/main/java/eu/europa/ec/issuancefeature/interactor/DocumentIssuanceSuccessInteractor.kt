@@ -141,15 +141,23 @@ class DocumentIssuanceSuccessInteractorImpl(
             } else {
                 resourceProvider.getString(R.string.issuance_success_header_description)
             }
+            // GRNET fork: when what was added is payment cards only, the cards themselves, which
+            // carry their bank's and network's branding, stand in for the issuer.
+            val onlyPaymentCards = documentsUi.isNotEmpty() && paymentCards.size == documentsUi.size
+
             val headerConfig = ContentHeaderConfig(
                 description = headerConfigDescription,
-                relyingPartyData = RelyingPartyDataUi(
-                    logo = issuerLogo,
-                    isVerified = issuerIsTrusted,
-                    name = issuerName,
-                    uniqueId = null,
-                    description = null,
-                )
+                relyingPartyData = if (onlyPaymentCards) {
+                    null
+                } else {
+                    RelyingPartyDataUi(
+                        logo = issuerLogo,
+                        isVerified = issuerIsTrusted,
+                        name = issuerName,
+                        uniqueId = null,
+                        description = null,
+                    )
+                }
             )
 
             emit(
@@ -158,7 +166,7 @@ class DocumentIssuanceSuccessInteractorImpl(
                     headerConfig = headerConfig,
                     bannerText = resourceProvider.getString(
                         // GRNET fork: "Card added", when what was added is payment cards only.
-                        if (documentsUi.isNotEmpty() && paymentCards.size == documentsUi.size) {
+                        if (onlyPaymentCards) {
                             R.string.issuance_success_banner_text_payment_card
                         } else {
                             R.string.issuance_success_banner_text
