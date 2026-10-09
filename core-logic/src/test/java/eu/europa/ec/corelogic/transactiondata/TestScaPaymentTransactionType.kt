@@ -16,16 +16,22 @@
 
 package eu.europa.ec.corelogic.transactiondata
 
+import eu.europa.ec.authenticationlogic.model.DeviceAuthenticationMethod
+import java.util.Base64
+import java.util.UUID
 import kotlinx.io.bytestring.ByteString
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.multipaz.crypto.Algorithm
 import org.multipaz.presentment.TransactionProtocol
-import java.util.Base64
 
 // GRNET fork: TS12 card payments, as the WE BUILD PA2 relying party sends them.
 class TestScaPaymentTransactionType {
@@ -128,5 +134,75 @@ class TestScaPaymentTransactionType {
                 ScaPaymentTransactionType.parseOpenId4VpRequest(request)
             }
         }
+    }
+
+    // GRNET fork: the Key Binding JWT claims of CS-12 §7.3 item 8.
+
+    @Test
+    fun `Given the user unlocked the card's key with a biometric, When the claims are made, Then a jti and the amr of possession and inherence are added`() {
+        // Given
+        ScaKeyAuthentication.record(DeviceAuthenticationMethod.BIOMETRIC)
+
+        // When
+        val claims = ScaPaymentTransactionType.keyBindingClaims(transactionData = emptyList())
+
+        // Then
+        val jti = (claims.getValue("jti") as JsonPrimitive).content
+        assertEquals(jti, UUID.fromString(jti).toString())
+        assertEquals(
+            JsonArray(
+                listOf(
+                    JsonObject(mapOf("possession" to JsonPrimitive("device_bound_key"))),
+                    JsonObject(mapOf("inherence" to JsonPrimitive("biometric_device"))),
+                )
+            ),
+            claims["amr"],
+        )
+    }
+
+    @Test
+    fun `Given the user unlocked the card's key with the screen lock, When the claims are made, Then the amr has possession and knowledge`() {
+        // Given
+        ScaKeyAuthentication.record(DeviceAuthenticationMethod.DEVICE_CREDENTIAL)
+
+        // When
+        val claims = ScaPaymentTransactionType.keyBindingClaims(transactionData = emptyList())
+
+        // Then
+        assertEquals(
+            JsonObject(mapOf("knowledge" to JsonPrimitive("screen_lock_device"))),
+            (claims["amr"] as JsonArray)[1],
+        )
+    }
+
+    @Test
+    fun `Given no key was unlocked by the user, or the system did not say how, When the claims are made, Then no amr is claimed`() {
+        listOf(null, DeviceAuthenticationMethod.UNKNOWN).forEach { method ->
+            // Given
+            ScaKeyAuthentication.clear()
+            method?.let { ScaKeyAuthentication.record(it) }
+
+            // When
+            val claims = ScaPaymentTransactionType.keyBindingClaims(transactionData = emptyList())
+
+            // Then
+            assertNull(claims["amr"])
+            assertNotNull(claims["jti"])
+        }
+    }
+
+    @Test
+    fun `Given an authentication was recorded, When two presentations are signed, Then only the first claims it and each has its own jti`() {
+        // Given
+        ScaKeyAuthentication.record(DeviceAuthenticationMethod.BIOMETRIC)
+
+        // When
+        val first = ScaPaymentTransactionType.keyBindingClaims(transactionData = emptyList())
+        val second = ScaPaymentTransactionType.keyBindingClaims(transactionData = emptyList())
+
+        // Then
+        assertNotNull(first["amr"])
+        assertNull(second["amr"])
+        assertNotEquals(first["jti"], second["jti"])
     }
 }
