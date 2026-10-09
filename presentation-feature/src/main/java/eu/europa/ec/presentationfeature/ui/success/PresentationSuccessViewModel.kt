@@ -71,7 +71,6 @@ class PresentationSuccessViewModel(
                                 headerConfig = response.headerConfig,
                                 bannerText = response.bannerText,
                                 items = response.documentsUi,
-                                paymentCards = response.paymentCards,
                                 isLoading = false,
                             )
                         }
