@@ -61,6 +61,7 @@ import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.resourceslogic.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.net.URI
 
 /**
  * GRNET fork: a payment card, a WE BUILD SCA-Card (DPC), as its issuer's display meta-data
@@ -73,6 +74,9 @@ import kotlinx.coroutines.withContext
  * @property networkName the payment network, e.g. "Mastercard", if known
  * @property typeLabel the product type, e.g. "Credit card", if known
  * @property cardArt the card art
+ * @property issuerName the card issuer, e.g. "Partner Bank", if known: the bank whose card it is,
+ * from the display meta-data's `issuer.branding`, not the issuing service that signed it
+ * @property issuerLogo the card issuer's logo, if known
  */
 data class PaymentCardUi(
     val name: String,
@@ -81,6 +85,8 @@ data class PaymentCardUi(
     val networkName: String?,
     val typeLabel: String?,
     val cardArt: CardDisplay.Images,
+    val issuerName: String? = null,
+    val issuerLogo: URI? = null,
 ) {
     /** The card number as the wallet's lists show it, e.g. "Mastercard •••• 1234". */
     val summary: String?
@@ -99,6 +105,8 @@ data class PaymentCardUi(
                 networkName = card.networkName,
                 typeLabel = card.type?.label,
                 cardArt = card.cardArt,
+                issuerName = card.issuerName,
+                issuerLogo = card.issuerLogo.anyTheme?.let { runCatching { URI(it) }.getOrNull() },
             )
         }
 

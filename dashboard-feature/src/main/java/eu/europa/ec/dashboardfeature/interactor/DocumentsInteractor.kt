@@ -307,13 +307,16 @@ class DocumentsInteractorImpl(
                             val localizedIssuerMetadata =
                                 document.localizedIssuerMetadata(userLocale)
 
-                            val issuerName = localizedIssuerMetadata?.name
+                            // GRNET fork: a payment card, shown as the card its issuer describes.
+                            val paymentCard = PaymentCardUi.from(document)
+
+                            // GRNET fork: a payment card's issuer, to search and filter by, is its
+                            // bank, when the card names one (rb-sca-card-dpc §2.9).
+                            val issuerName = paymentCard?.issuerName
+                                ?: localizedIssuerMetadata?.name
                                 ?: resourceProvider.getString(R.string.documents_screen_filters_unknown_issuer)
 
                             val documentIdentifier = document.toDocumentIdentifier()
-
-                            // GRNET fork: a payment card, shown as the card its issuer describes.
-                            val paymentCard = PaymentCardUi.from(document)
 
                             // GRNET fork: payment cards are listed under Finance, whatever the
                             // card issuer's own type of credential (rb-sca-card-dpc §2.8).

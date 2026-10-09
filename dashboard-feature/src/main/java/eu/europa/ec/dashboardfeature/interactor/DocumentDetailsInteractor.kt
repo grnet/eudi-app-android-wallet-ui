@@ -174,9 +174,18 @@ class DocumentDetailsInteractorImpl(
                     null
                 }
 
+                // GRNET fork: a payment card's issuer is its bank, when the card names one
+                // (rb-sca-card-dpc §2.9), with the bank's logo, or none, never the issuing
+                // service's.
                 val userLocale = resourceProvider.getLocale()
-                val issuerName = safeIssuedDocument.localizedIssuerMetadata(userLocale)?.name
-                val issuerLogo = safeIssuedDocument.localizedIssuerMetadata(userLocale)?.logo
+                val cardIssuerName = paymentCard?.issuerName
+                val issuerName = cardIssuerName
+                    ?: safeIssuedDocument.localizedIssuerMetadata(userLocale)?.name
+                val issuerLogo = if (cardIssuerName != null) {
+                    paymentCard?.issuerLogo
+                } else {
+                    safeIssuedDocument.localizedIssuerMetadata(userLocale)?.logo?.uri
+                }
 
                 val documentIsBookmarked =
                     walletCoreDocumentsController.isDocumentBookmarked(documentId)
@@ -184,7 +193,7 @@ class DocumentDetailsInteractorImpl(
                 val documentIsRevoked = walletCoreDocumentsController.isDocumentRevoked(documentId)
                 val issuerDetails = IssuerDetailsCardDataUi(
                     issuerName = issuerName,
-                    issuerLogo = issuerLogo?.uri,
+                    issuerLogo = issuerLogo,
                     documentState = when {
                         documentIsRevoked -> IssuerDetailsCardDataUi.DocumentState.Revoked
 
