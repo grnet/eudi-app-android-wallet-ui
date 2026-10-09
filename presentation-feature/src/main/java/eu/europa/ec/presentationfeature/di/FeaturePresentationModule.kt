@@ -52,9 +52,11 @@ fun providePresentationRequestInteractor(
 @Factory
 fun providePresentationLoadingInteractor(
     deviceAuthenticationInteractor: DeviceAuthenticationInteractor,
+    resourceProvider: ResourceProvider,
 ): PresentationLoadingInteractor {
     return PresentationLoadingInteractorImpl(
-        deviceAuthenticationInteractor
+        deviceAuthenticationInteractor,
+        resourceProvider,
     )
 }
 
