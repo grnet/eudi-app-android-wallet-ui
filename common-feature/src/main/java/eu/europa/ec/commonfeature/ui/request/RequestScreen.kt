@@ -139,7 +139,7 @@ fun RequestScreen(
                         )
                     },
                 ),
-                // GRNET fork: a payment is approved, for its amount.
+                // GRNET fork: for a payment, "Pay" and its amount.
                 primaryButtonText = state.requestDataUi.selectedCombination?.transactionData?.payment
                     ?.let { stringResource(R.string.request_sticky_button_text_payment, it.amount) }
                     ?: stringResource(R.string.request_sticky_button_text),
@@ -147,6 +147,8 @@ fun RequestScreen(
                 primaryButtonEnabled = !state.isLoading && state.allowShare,
                 onPrimaryButtonClick = { viewModel.setEvent(Event.StickyButtonPressed) },
                 onCancelButtonClick = { viewModel.setEvent(Event.OnBack) },
+                // GRNET fork: no check mark beside "Pay 38.00 EUR", so it fits on one line.
+                showPrimaryButtonIcon = state.requestDataUi.selectedCombination?.transactionData?.payment == null,
             )
         },
         contentErrorConfig = state.error
