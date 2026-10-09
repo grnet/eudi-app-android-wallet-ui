@@ -52,6 +52,10 @@ data class State(
     val claimsAreSelectable: Boolean = true,
 
     val intentAction: IntentAction? = null,
+
+    // GRNET fork: the requested values are hidden until the user authenticates, when the
+    // request was shown without unlocking the wallet first.
+    val hideClaimValues: Boolean = false,
 ) : ViewState {
     val allowShare: Boolean
         get() {

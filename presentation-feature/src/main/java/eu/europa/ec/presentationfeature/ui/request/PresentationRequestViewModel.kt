@@ -113,6 +113,8 @@ class PresentationRequestViewModel(
             copy(
                 presentationScopeId = requestUriConfig.presentationScopeId,
                 intentAction = intentAction,
+                hideClaimValues = (requestUriConfig.mode as? PresentationMode.DcApi)
+                    ?.userAuthenticated == false,
             )
         }
 

@@ -319,6 +319,7 @@ private fun Content(
                 )
             },
             paymentRequester = paymentRequester,
+            hideClaimValues = state.hideClaimValues,
         )
     }
 
@@ -414,6 +415,7 @@ private fun DisplayRequestContent(
     onTransactionExpansionChange: (String, String) -> Unit,
     onTransactionDocumentClick: (String, String) -> Unit,
     paymentRequester: (@Composable () -> Unit)? = null,
+    hideClaimValues: Boolean = false,
 ) {
     when (requestDataUi) {
         is RequestDataUi.Initial -> Unit // Nothing to render until the request resolves.
@@ -446,6 +448,7 @@ private fun DisplayRequestContent(
                 onTransactionExpansionChange = onTransactionExpansionChange,
                 onTransactionDocumentClick = onTransactionDocumentClick,
                 paymentRequester = paymentRequester,
+                hideClaimValues = hideClaimValues,
             )
         }
 
@@ -467,6 +470,7 @@ private fun DisplayRequestContent(
                 onTransactionExpansionChange = onTransactionExpansionChange,
                 onTransactionDocumentClick = onTransactionDocumentClick,
                 paymentRequester = paymentRequester,
+                hideClaimValues = hideClaimValues,
             )
         }
     }
@@ -498,6 +502,7 @@ private fun DisplayCombinationCards(
     onTransactionExpansionChange: (String, String) -> Unit,
     onTransactionDocumentClick: (String, String) -> Unit,
     paymentRequester: (@Composable () -> Unit)? = null,
+    hideClaimValues: Boolean = false,
 ) {
     Column(
         modifier = modifier,
@@ -524,6 +529,7 @@ private fun DisplayCombinationCards(
                     onTransactionExpansionChange = onTransactionExpansionChange,
                     onTransactionDocumentClick = onTransactionDocumentClick,
                     paymentRequester = paymentRequester,
+                    hideClaimValues = hideClaimValues,
                 )
             }
         }
@@ -542,6 +548,7 @@ private fun CombinationContent(
     onTransactionDocumentClick: (String, String) -> Unit,
     showRequestedDataTitle: Boolean = false,
     paymentRequester: (@Composable () -> Unit)? = null,
+    hideClaimValues: Boolean = false,
 ) {
     val requestItems: @Composable () -> Unit = {
         DisplayRequestItems(
@@ -550,6 +557,7 @@ private fun CombinationContent(
             claimsAreSelectable = claimsAreSelectable,
             onClaimClick = onClaimClick,
             onExpansionChange = onCredentialExpansionChange,
+            hideClaimValues = hideClaimValues,
         )
     }
     val transactionData: @Composable () -> Unit = {
@@ -595,6 +603,7 @@ private fun DisplayRequestItems(
     claimsAreSelectable: Boolean,
     onClaimClick: (String) -> Unit,
     onExpansionChange: (String) -> Unit,
+    hideClaimValues: Boolean = false,
 ) {
     Column(
         modifier = modifier,
@@ -618,7 +627,7 @@ private fun DisplayRequestItems(
                 },
                 isExpanded = requestDocument.headerUi.isExpanded,
                 throttleClicks = false,
-                hideSensitiveContent = false,
+                hideSensitiveContent = hideClaimValues,
                 collapsedMainContentVerticalPadding = SPACING_MEDIUM.dp,
                 expandedMainContentVerticalPadding = SPACING_MEDIUM.dp,
                 colors = CardDefaults.cardColors(

@@ -24,6 +24,9 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import eu.europa.ec.uilogic.container.EudiComponentActivity
+import eu.europa.ec.uilogic.navigation.helper.IntentAction
+import eu.europa.ec.uilogic.navigation.helper.IntentType
+import eu.europa.ec.uilogic.navigation.helper.hasIntentAction
 
 fun Context.getPendingUri(): Uri? {
     return (this as? EudiComponentActivity)?.getCachedIntent()?.data.let { uri ->
@@ -37,6 +40,17 @@ fun Context.getPendingIntent(): Intent? {
         clearPendingIntent()
         intent
     }
+}
+
+/**
+ * GRNET fork: the pending intent's action, if it is of [type], taken so that no other screen
+ * handles it again; else `null`, and the pending intent is left as it is.
+ */
+fun Context.takePendingIntentAction(type: IntentType): IntentAction? {
+    val activity = this as? EudiComponentActivity ?: return null
+    return hasIntentAction(activity.getCachedIntent())
+        ?.takeIf { it.type == type }
+        ?.also { clearPendingIntent() }
 }
 
 fun Context.cacheUri(uri: Uri) {
