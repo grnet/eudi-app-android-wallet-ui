@@ -35,7 +35,6 @@ import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.ListItemDataUi
-import eu.europa.ec.uilogic.component.ListItemLeadingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
 import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
@@ -137,8 +136,9 @@ class PresentationSuccessInteractorImpl(
                             queryId = selection.queryId,
                         ).encode()
 
-                        // GRNET fork: a payment card is recalled by its name, its art and its
-                        // number; the card itself was shown where the payment was approved.
+                        // GRNET fork: a payment card by its own name only. Its art and last
+                        // four digits are display meta-data, never presented to the verifier
+                        // (rb-sca-card-dpc §2.9), so they stay out of what was shared.
                         val paymentCard = PaymentCardUi.from(document)
 
                         val disclosedDocumentUi = ExpandableListItemUi.NestedListItem(
@@ -147,10 +147,6 @@ class PresentationSuccessInteractorImpl(
                                 mainContentData = ListItemMainContentDataUi.Text(
                                     text = paymentCard?.name ?: document.name
                                 ),
-                                overlineText = paymentCard?.summary,
-                                leadingContentData = paymentCard?.let {
-                                    ListItemLeadingContentDataUi.PaymentCard(card = it)
-                                },
                                 supportingContentData = ListItemSupportingContentDataUi.Text(
                                     text = resourceProvider.getString(R.string.document_success_collapsed_supporting_text),
                                 ),
