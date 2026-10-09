@@ -66,6 +66,9 @@ import eu.europa.ec.storagelogic.dao.FailedReIssuedDocumentDao
 import eu.europa.ec.storagelogic.dao.RevokedDocumentDao
 import eu.europa.ec.storagelogic.model.Bookmark
 import eu.europa.ec.storagelogic.model.FailedReIssuedDocument
+import java.net.URLDecoder
+import java.util.Locale
+import kotlin.time.Duration
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ProducerScope
@@ -78,8 +81,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.net.URLDecoder
-import java.util.Locale
+import org.multipaz.securearea.AndroidKeystoreCreateKeySettings
+import org.multipaz.securearea.UserAuthenticationType
 
 enum class IssuanceMethod {
     OPENID4VCI
@@ -851,6 +854,33 @@ class WalletCoreDocumentsControllerImpl(
     override suspend fun resolveDocumentStatus(document: IssuedDocument): Result<Status> =
         eudiWallet.resolveStatus(document)
 
+    /**
+     * GRNET fork: the key settings for [offeredDocument] if its type is one of
+     * [WalletCoreConfig.userAuthenticatedKeyTypes]: its key requires user authentication, by
+     * biometrics or the device's screen lock, at every use. Else `null`, the defaults.
+     */
+    private fun userAuthenticatedKeySettings(
+        offeredDocument: Offer.OfferedDocument,
+    ): (AndroidKeystoreCreateKeySettings.Builder.() -> Unit)? {
+        val type = when (val format = offeredDocument.documentFormat) {
+            is MsoMdocFormat -> format.docType
+            is SdJwtVcFormat -> format.vct
+            null -> null
+        }
+        if (type == null || type !in walletCoreConfig.userAuthenticatedKeyTypes) return null
+        return {
+            setUseStrongBox(eudiWallet.config.useStrongBoxForKeys)
+            setUserAuthenticationRequired(
+                required = true,
+                timeout = Duration.ZERO,
+                userAuthenticationTypes = setOf(
+                    UserAuthenticationType.LSKF,
+                    UserAuthenticationType.BIOMETRIC,
+                ),
+            )
+        }
+    }
+
     private fun issueDocumentsWithOpenId4VCI(
         configIds: List<String>,
         issuerId: String,
@@ -919,7 +949,9 @@ class WalletCoreDocumentsControllerImpl(
                 is IssueEvent.DocumentRequiresCreateSettings -> {
                     when (event) {
                         is IssueEvent.DocumentRequiresCreateSettings.MandatoryReusePolicy -> {
-                            val (secureAreaId, createKeySettings) = eudiWallet.getDefaultCreateKeySettings()
+                            val (secureAreaId, createKeySettings) = eudiWallet.getDefaultCreateKeySettings(
+                                configure = userAuthenticatedKeySettings(event.offeredDocument),
+                            )
                             event.resume(secureAreaId, createKeySettings)
                         }
 
@@ -956,7 +988,8 @@ class WalletCoreDocumentsControllerImpl(
                             val createDocumentSettings =
                                 eudiWallet.getDefaultCreateDocumentSettings(
                                     offeredDocument = event.offeredDocument,
-                                    credentialPolicy = adjustedPolicy
+                                    credentialPolicy = adjustedPolicy,
+                                    configure = userAuthenticatedKeySettings(event.offeredDocument),
                                 )
 
                             event.resume(createDocumentSettings)

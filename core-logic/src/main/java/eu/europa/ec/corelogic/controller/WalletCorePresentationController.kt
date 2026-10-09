@@ -223,6 +223,13 @@ interface WalletCorePresentationController {
     fun checkForKeyUnlock(): Flow<CheckKeyUnlockPartialState>
 
     /**
+     * GRNET fork: whether a key of [disclosedDocuments] requires user authentication to sign, so
+     * that the presentation asks for it, bound to the key, and no other authentication is needed
+     * before it.
+     */
+    suspend fun disclosedKeysRequireUserAuthentication(): Boolean
+
+    /**
      * Build the Wallet Core [CredentialSelection] from [disclosedDocuments] and
      * dispatch it to the Wallet Core SDK.
      */
@@ -410,12 +417,17 @@ class WalletCorePresentationControllerImpl(
 
                 val authenticationData = mutableListOf<AuthenticationData>()
 
-                if (eudiWallet.config.userAuthenticationRequired) {
+                // GRNET fork: also when only some keys require it, such as a payment card's
+                // (WalletCoreConfig.userAuthenticatedKeyTypes); only those are prompted for.
+                val selectionsRequiringAuth = selections.filter { keyRequiresUserAuthentication(it) }
+
+                if (selectionsRequiringAuth.isNotEmpty()) {
 
                     // one prompt per credential, not per selection: a multi-query request can
                     // disclose the same credential under several queryIds and its key unlocks
                     // once, so distinctBy avoids N identical biometric prompts
-                    val distinctCredentialSelections = selections.distinctBy { it.credentialId }
+                    val distinctCredentialSelections =
+                        selectionsRequiringAuth.distinctBy { it.credentialId }
 
                     for (selection in distinctCredentialSelections) {
                         val kud =
@@ -451,6 +463,23 @@ class WalletCorePresentationControllerImpl(
                 error = it.localizedMessage ?: genericErrorMessage
             )
         }
+    }
+
+    override suspend fun disclosedKeysRequireUserAuthentication(): Boolean =
+        disclosedDocuments.orEmpty().any { keyRequiresUserAuthentication(it) }
+
+    /**
+     * GRNET fork: whether the key [selection] signs with requires user authentication: every key
+     * when the wallet is configured so, else as the key was created.
+     */
+    private suspend fun keyRequiresUserAuthentication(
+        selection: PresentationSelectionDomain,
+    ): Boolean {
+        if (eudiWallet.config.userAuthenticationRequired) return true
+        return runCatching {
+            val kud = eudiWallet.getDefaultKeyUnlockData(documentId = selection.documentId)
+            kud?.secureArea?.getKeyInfo(kud.alias)?.isUserAuthenticationRequired == true
+        }.getOrDefault(false)
     }
 
     override suspend fun sendRequestedDocuments(): SendRequestedDocumentsPartialState {

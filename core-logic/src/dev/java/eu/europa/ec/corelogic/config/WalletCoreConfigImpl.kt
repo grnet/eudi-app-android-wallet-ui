@@ -220,6 +220,15 @@ internal class WalletCoreConfigImpl(
                 )
             }
 
+    // GRNET fork: a WE BUILD SCA-Card (DPC) key signs payments, so it is unlocked by biometrics
+    // or the device's screen lock at every use (rb-sca-card-dpc; TS12). Our issuer's type and
+    // the WE BUILD base type.
+    override val userAuthenticatedKeyTypes: Set<String>
+        get() = setOf(
+            "https://demo.eudiw.grnet.gr/issuer/credentials/sca/card-dpc/1.0",
+            "https://webuildconsortium.eu/sca/sca-card-dpc/1.0",
+        )
+
     override val documentIssuanceConfig: DocumentIssuanceConfig
         get() = DocumentIssuanceConfig(
             defaultPolicy = CredentialPolicy.RotatingBatch(

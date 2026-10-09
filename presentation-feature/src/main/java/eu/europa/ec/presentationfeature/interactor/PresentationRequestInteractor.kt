@@ -55,6 +55,9 @@ interface PresentationRequestInteractor : ScopedPresentationInteractor {
     fun getRequestDocuments(): Flow<PresentationRequestInteractorPartialState>
     fun stopPresentation()
     fun updateRequestedDocuments(selectedCombination: RequestCombinationUi?)
+
+    /** GRNET fork: see [WalletCorePresentationController.disclosedKeysRequireUserAuthentication]. */
+    suspend fun disclosedKeysRequireUserAuthentication(): Boolean
     fun setConfig(config: RequestUriConfig, intentAction: IntentAction?)
 }
 
@@ -172,4 +175,7 @@ class PresentationRequestInteractorImpl(
 
         walletCorePresentationController.updateRequestedDocuments(disclosedDocuments = selections)
     }
+
+    override suspend fun disclosedKeysRequireUserAuthentication(): Boolean =
+        walletCorePresentationController.disclosedKeysRequireUserAuthentication()
 }
