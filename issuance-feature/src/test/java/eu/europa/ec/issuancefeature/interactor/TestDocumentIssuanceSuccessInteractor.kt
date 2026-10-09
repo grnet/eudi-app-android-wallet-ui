@@ -643,6 +643,64 @@ class TestDocumentIssuanceSuccessInteractor {
         }
     }
 
+    // GRNET fork, Case 10:
+    // When getUiItems() is called for one document that is a payment card whose card display
+    // names its issuer, the bank, with its logo (rb-sca-card-dpc §2.9).
+
+    // Case 10 Expected Result:
+    // DocumentIssuanceSuccessInteractorGetUiItemsPartialState.Success is emitted, with the card's
+    // issuer, its name and logo, in the header, not the issuing service's.
+
+    @Test
+    fun `Given Case 10, When getUiItems is called for a payment card naming its issuer, Then the header shows the card issuer`() {
+        coroutineRule.runTest {
+            // Given
+            mockHeaderConfigDescription(isErrorCase = false)
+            mockTransformToDocumentDetailsDomainStrings(resourceProvider)
+            mockGetUiItemsStrings(
+                resourceProvider = resourceProvider,
+                supportingText = mockedDocumentSuccessCollapsedSupportingText,
+            )
+            whenever(resourceProvider.getString(R.string.issuance_success_banner_text_payment_card))
+                .thenReturn(mockedCardAddedBannerText)
+
+            val card = getMockedSdJwtPidWithBasicFields().copy(
+                issuerMetadata = IssuerMetadata(
+                    documentConfigurationIdentifier = "card",
+                    display = emptyList(),
+                    claims = null,
+                    credentialIssuerIdentifier = "https://issuer.example",
+                    issuerDisplay = null,
+                    credentialDisplay = listOf(
+                        Json.parseToJsonElement(
+                            """
+                            {"card": {"alias": "Partner Bank Credit Mastercard", "last_four": "1234",
+                              "card_art": [{"theme": "DEFAULT", "image_url": "https://bank.example/card.png"}],
+                              "issuer": {"branding": {"name": "Partner Bank",
+                                "logo": [{"theme": "DEFAULT", "image_url": "https://bank.example/logo.png"}]}}}}
+                            """.trimIndent()
+                        ).jsonObject
+                    ),
+                )
+            )
+            mockGetDocumentByIdCall(response = card)
+
+            // When
+            interactor.getUiItems(
+                documentIds = listOf(mockedSdJwtPidId)
+            ).runFlowTest {
+                // Then
+                val success = awaitItem() as DocumentIssuanceSuccessInteractorGetUiItemsPartialState.Success
+                assertEquals("Partner Bank", success.headerConfig.relyingPartyData?.name)
+                assertEquals(
+                    URI("https://bank.example/logo.png"),
+                    success.headerConfig.relyingPartyData?.logo
+                )
+                assertEquals(mockedCardAddedBannerText, success.bannerText)
+            }
+        }
+    }
+
     private val mockedCardAddedBannerText = "Card added"
 
     // endregion
