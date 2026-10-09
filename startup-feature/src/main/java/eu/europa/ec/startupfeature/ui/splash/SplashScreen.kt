@@ -23,9 +23,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -34,6 +37,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -121,15 +126,26 @@ private fun Content(
                 ) {
                     // GRNET fork: the gov.gr beta logo beneath the EUDI mark, so the
                     // build is told apart from the reference app from its first screen.
-                    // No extra spacing: the mark's own canvas leaves room beneath it.
+                    // The mark is cut to its artwork, which fills the middle 100dp of its
+                    // 160dp canvas, so that the gap between the two is the one set here;
+                    // gov.gr is as wide as the mark's artwork, so "BETA" can be read.
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         WrapImage(
-                            iconData = AppIcons.LogoIcon
+                            iconData = AppIcons.LogoIcon,
+                            modifier = Modifier.size(
+                                width = SPLASH_MARK_SIZE.dp,
+                                height = SPLASH_MARK_ARTWORK_HEIGHT.dp,
+                            ),
+                            contentScale = ContentScale.Crop,
                         )
                         WrapImage(
-                            iconData = AppIcons.GovGrBeta
+                            iconData = AppIcons.GovGrBeta,
+                            modifier = Modifier
+                                .padding(top = SPLASH_GOVGR_TOP_PADDING.dp)
+                                .width(SPLASH_GOVGR_WIDTH.dp)
+                                .aspectRatio(GOVGR_ASPECT_RATIO),
                         )
                     }
                 }
@@ -145,3 +161,17 @@ private fun Content(
         }.collect()
     }
 }
+
+/**
+ * GRNET fork: the EUDI mark on the splash screen, its 160dp canvas cut to the 100dp band its
+ * artwork fills (the artwork spans 30dp to 129dp of the canvas's height).
+ */
+private const val SPLASH_MARK_SIZE = 160
+private const val SPLASH_MARK_ARTWORK_HEIGHT = 100
+
+/** GRNET fork: the gov.gr beta logo on the splash screen: its width, and its space below the mark. */
+private const val SPLASH_GOVGR_WIDTH = 144
+private const val SPLASH_GOVGR_TOP_PADDING = 20
+
+/** The gov.gr beta logo's width to height, from its drawable's viewport (502.02 by 150.61). */
+private const val GOVGR_ASPECT_RATIO = 502.02f / 150.61f
