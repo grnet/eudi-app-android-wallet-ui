@@ -59,6 +59,7 @@ import java.net.URI
  * @property uniqueId the party's registered identifier, rendered as an "(ID: …)" line;
  * hidden when null.
  * @property description an optional supporting line under the identity.
+ * @property emphasizeName GRNET fork: whether [name] is shown in bold.
  */
 @Serializable
 data class RelyingPartyDataUi(
@@ -67,6 +68,7 @@ data class RelyingPartyDataUi(
     val name: String,
     val uniqueId: String?,
     val description: String?,
+    val emphasizeName: Boolean = false,
 )
 
 /**
@@ -185,7 +187,8 @@ private fun RelyingPartyIdentity(
                 WrapText(
                     text = name,
                     textConfig = TextConfig(
-                        styleKey = TextStyleKey.BodyMedium,
+                        // GRNET fork: in bold where the screen asks for it.
+                        styleKey = if (emphasizeName) TextStyleKey.BodyMediumBold else TextStyleKey.BodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = textAlign,
                     ),

@@ -109,6 +109,9 @@ enum class TextStyleKey {
 
     /** [BodyLarge] with [FontWeight.W600] applied — used for emphasized body text. */
     BodyLargeBold,
+
+    /** GRNET fork: [BodyMedium] with [FontWeight.W600], as [BodyLargeBold] is to [BodyLarge]. */
+    BodyMediumBold,
 }
 
 /**
@@ -134,6 +137,8 @@ fun TextStyleKey.toTextStyle(): TextStyle = when (this) {
     TextStyleKey.LabelSmall -> MaterialTheme.typography.labelSmall
     TextStyleKey.BodyLargeBold ->
         MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.W600)
+    TextStyleKey.BodyMediumBold ->
+        MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600)
 }
 
 @ThemeModePreviews

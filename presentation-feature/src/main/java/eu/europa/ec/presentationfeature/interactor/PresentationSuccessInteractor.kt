@@ -164,6 +164,10 @@ class PresentationSuccessInteractorImpl(
                 }
             }
 
+            val paymentAmount = payment?.let {
+                formatPaymentAmount(amount = it.amount, currency = it.currency)
+            }
+
             val headerConfigDescription = when {
                 documentsUi.isEmpty() -> resourceProvider.getString(R.string.document_success_header_description_when_error)
 
@@ -171,7 +175,7 @@ class PresentationSuccessInteractorImpl(
                 // payment then went through, so it says "approved", never "paid".
                 payment != null -> resourceProvider.getString(
                     R.string.document_success_header_description_payment,
-                    formatPaymentAmount(amount = payment.amount, currency = payment.currency),
+                    paymentAmount.orEmpty(),
                     payment.payeeName,
                 )
 
@@ -187,7 +191,15 @@ class PresentationSuccessInteractorImpl(
                     ),
                     uniqueId = null,
                     description = null,
-                )
+                    // GRNET fork: who the data went to, in bold after a payment.
+                    emphasizeName = payment != null && documentsUi.isNotEmpty(),
+                ),
+                // GRNET fork: what was approved and to whom, in bold.
+                descriptionEmphasis = if (payment != null && documentsUi.isNotEmpty()) {
+                    listOfNotNull(paymentAmount, payment.payeeName)
+                } else {
+                    emptyList()
+                },
             )
 
             emit(
