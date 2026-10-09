@@ -253,7 +253,9 @@
     <string name="request_transaction_date_time">Date and time</string>
     <string name="request_transaction_id">Transaction ID</string>
     <string name="request_transaction_payment_to">to %1$s</string>
-    <string name="request_sticky_button_text_payment">Approve %1$s</string>
+    <string name="request_sticky_button_text_payment">Pay %1$s</string>
+    <string name="request_screen_title_payment">Confirm payment</string>
+    <string name="request_relying_party_requested_by">Requested by</string>
     <!-- GRNET fork: payment cards, WE BUILD SCA-Card (DPC) -->
     <string name="payment_card_expiry_date">Expiry date</string>
     <string name="payment_card_content_description">%1$s, card ending in %2$s</string>

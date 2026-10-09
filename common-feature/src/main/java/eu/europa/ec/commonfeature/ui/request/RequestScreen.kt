@@ -231,6 +231,9 @@ private fun Content(
     val rendersDocuments = state.requestDataUi is RequestDataUi.Single ||
             state.requestDataUi is RequestDataUi.Multiple
 
+    // GRNET fork: a TS12 card payment is asked for as a payment, not as data sharing.
+    val isPayment = state.requestDataUi.selectedCombination?.transactionData?.payment != null
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -247,7 +250,9 @@ private fun Content(
         // Screen Header.
         ContentTitle(
             modifier = Modifier.fillMaxWidth(),
-            title = stringResource(R.string.request_screen_title),
+            title = stringResource(
+                if (isPayment) R.string.request_screen_title_payment else R.string.request_screen_title
+            ),
         )
 
         state.relyingPartyHeader?.let { safeRelyingPartyHeader ->
@@ -257,6 +262,8 @@ private fun Content(
                     .padding(vertical = SPACING_SMALL.dp),
                 header = safeRelyingPartyHeader,
                 onPrivacyPolicyClick = { onEventSend(Event.PrivacyPolicyLinkClicked) },
+                // GRNET fork: who asks, told apart from the payee the payment goes to.
+                caption = if (isPayment) stringResource(R.string.request_relying_party_requested_by) else null,
             )
         }
 
@@ -327,8 +334,19 @@ private fun VerifierHeaderSection(
     modifier: Modifier,
     header: RelyingPartyHeaderUi,
     onPrivacyPolicyClick: () -> Unit,
+    caption: String? = null,
 ) {
     Column(modifier = modifier) {
+        caption?.let { safeCaption ->
+            WrapText(
+                modifier = Modifier.fillMaxWidth(),
+                text = safeCaption,
+                textConfig = TextConfig(
+                    styleKey = TextStyleKey.LabelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+            )
+        }
         RelyingParty(
             modifier = Modifier
                 .fillMaxWidth()
@@ -592,17 +610,20 @@ private fun TransactionDataSection(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
     ) {
-        SectionTitle(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = titleStartPadding),
-            text = transactionData.title,
-            textConfig = TextConfig(
-                styleKey = TextStyleKey.LabelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = Int.MAX_VALUE,
-            ),
-        )
+        // GRNET fork: a payment's section needs no title of its own: the screen's title says it.
+        if (transactionData.payment == null) {
+            SectionTitle(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = titleStartPadding),
+                text = transactionData.title,
+                textConfig = TextConfig(
+                    styleKey = TextStyleKey.LabelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = Int.MAX_VALUE,
+                ),
+            )
+        }
         transactionData.payment?.let { safePayment ->
             PaymentSummary(
                 modifier = Modifier
