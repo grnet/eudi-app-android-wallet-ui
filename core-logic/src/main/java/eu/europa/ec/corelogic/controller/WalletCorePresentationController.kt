@@ -29,13 +29,14 @@ import eu.europa.ec.corelogic.extension.toRegistrationStatusDomain
 import eu.europa.ec.corelogic.model.AuthenticationData
 import eu.europa.ec.corelogic.model.PresentationCombinationDomain
 import eu.europa.ec.corelogic.model.PresentationMatchDomain
-import eu.europa.ec.corelogic.model.PresentationTransactionDataDomain
 import eu.europa.ec.corelogic.model.PresentationSelectionDomain
+import eu.europa.ec.corelogic.model.PresentationTransactionDataDomain
 import eu.europa.ec.corelogic.model.RegistrationStatusDomain
 import eu.europa.ec.corelogic.model.RelyingPartyDomain
 import eu.europa.ec.corelogic.model.identityKey
 import eu.europa.ec.corelogic.model.requesterUniqueIdOrNull
 import eu.europa.ec.corelogic.model.resolveRequesterName
+import eu.europa.ec.corelogic.transactiondata.ScaKeyAuthentication
 import eu.europa.ec.corelogic.util.EudiWalletListenerWrapper
 import eu.europa.ec.eudi.iso18013.transfer.TransferEvent
 import eu.europa.ec.eudi.iso18013.transfer.response.RequestProcessor
@@ -45,6 +46,7 @@ import eu.europa.ec.eudi.wallet.dcapi.process.openid4vp.ProcessedOpenId4VpDCAPIR
 import eu.europa.ec.eudi.wallet.document.DocumentExtensions.getDefaultKeyUnlockData
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.dcql.ProcessedDcqlRequest
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
+import java.net.URI
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -67,7 +69,6 @@ import kotlinx.coroutines.runBlocking
 import org.multipaz.presentment.CredentialPresentmentSetOptionMemberMatch
 import org.multipaz.presentment.CredentialSelection
 import org.multipaz.securearea.KeyUnlockData
-import java.net.URI
 
 sealed class PresentationControllerConfig(val initiatorRoute: String) {
     data class OpenId4VP(val uri: String, val initiator: String) :
@@ -414,6 +415,7 @@ class WalletCorePresentationControllerImpl(
 
                 // fresh per send attempt
                 keyUnlockDataByCredentialId.clear()
+                ScaKeyAuthentication.clear()
 
                 val authenticationData = mutableListOf<AuthenticationData>()
 
@@ -441,7 +443,9 @@ class WalletCorePresentationControllerImpl(
                                     if (kud != null) {
                                         keyUnlockDataByCredentialId[selection.credentialId] = kud
                                     }
-                                }
+                                },
+                                // GRNET fork: for a payment's `amr` (ScaPaymentTransactionType).
+                                onAuthenticated = { method -> ScaKeyAuthentication.record(method) },
                             )
                         )
                     }

@@ -25,6 +25,7 @@ import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import eu.europa.ec.authenticationlogic.model.BiometricCrypto
+import eu.europa.ec.authenticationlogic.model.DeviceAuthenticationMethod
 import eu.europa.ec.authenticationlogic.model.DeviceAuthenticationPrompt
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
@@ -111,6 +112,7 @@ class DeviceAuthenticationControllerImpl(
 
             resultDelivered = true
             if (data.authenticationResult != null) {
+                result.onAuthenticated(DeviceAuthenticationMethod.of(data.authenticationResult))
                 result.onAuthenticationSuccess()
             } else if (data.hasError) {
                 result.onAuthenticationError()
@@ -138,8 +140,13 @@ class DeviceAuthenticationControllerImpl(
     }
 }
 
+/**
+ * @property onAuthenticated GRNET fork: how the user authenticated, called just before
+ * [onAuthenticationSuccess].
+ */
 data class DeviceAuthenticationResult(
     val onAuthenticationSuccess: suspend () -> Unit = {},
     val onAuthenticationError: () -> Unit = {},
     val onAuthenticationFailure: () -> Unit = {},
+    val onAuthenticated: (DeviceAuthenticationMethod) -> Unit = {},
 )

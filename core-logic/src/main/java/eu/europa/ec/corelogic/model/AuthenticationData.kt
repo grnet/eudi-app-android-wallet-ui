@@ -17,8 +17,14 @@
 package eu.europa.ec.corelogic.model
 
 import eu.europa.ec.authenticationlogic.model.BiometricCrypto
+import eu.europa.ec.authenticationlogic.model.DeviceAuthenticationMethod
 
+/**
+ * @property onAuthenticated GRNET fork: how the user authenticated, before
+ * [onAuthenticationSuccess].
+ */
 data class AuthenticationData(
     val crypto: BiometricCrypto,
-    val onAuthenticationSuccess: () -> Unit
+    val onAuthenticationSuccess: () -> Unit,
+    val onAuthenticated: (DeviceAuthenticationMethod) -> Unit = {},
 )
