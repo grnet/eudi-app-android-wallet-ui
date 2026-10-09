@@ -30,6 +30,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,8 +38,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -81,6 +87,7 @@ import eu.europa.ec.uilogic.component.wrap.WrapIcon
 import eu.europa.ec.uilogic.component.wrap.WrapStickyBottomContent
 import eu.europa.ec.uilogic.component.wrap.WrapText
 import eu.europa.ec.uilogic.component.wrap.shadowsAtElevation1
+import eu.europa.ec.uilogic.component.wrap.toTextStyle
 import eu.europa.ec.uilogic.extension.applyTestTag
 import eu.europa.ec.uilogic.extension.cacheUri
 import eu.europa.ec.uilogic.extension.findActivity
@@ -236,18 +243,36 @@ private fun Content(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     state.headerConfig.description?.let { safeDescription ->
-                        WrapText(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .applyTestTag(TestTag.DocumentSuccessScreen.CONTENT_HEADER_DESCRIPTION),
-                            text = safeDescription,
-                            textConfig = state.headerConfig.descriptionTextConfig ?: TextConfig(
-                                styleKey = TextStyleKey.BodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                                maxLines = Int.MAX_VALUE,
-                            ),
+                        val descriptionModifier = Modifier
+                            .fillMaxWidth()
+                            .applyTestTag(TestTag.DocumentSuccessScreen.CONTENT_HEADER_DESCRIPTION)
+                        val descriptionTextConfig = state.headerConfig.descriptionTextConfig ?: TextConfig(
+                            styleKey = TextStyleKey.BodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            maxLines = Int.MAX_VALUE,
                         )
+                        val emphasis = state.headerConfig.descriptionEmphasis
+                        if (emphasis.isEmpty()) {
+                            WrapText(
+                                modifier = descriptionModifier,
+                                text = safeDescription,
+                                textConfig = descriptionTextConfig,
+                            )
+                        } else {
+                            // GRNET fork: parts of the description in bold, such as the
+                            // amount and the payee of an approved payment.
+                            Text(
+                                modifier = descriptionModifier,
+                                text = emphasized(safeDescription, emphasis),
+                                style = descriptionTextConfig.styleKey?.toTextStyle()
+                                    ?: LocalTextStyle.current,
+                                color = descriptionTextConfig.color ?: Color.Unspecified,
+                                textAlign = descriptionTextConfig.textAlign,
+                                maxLines = descriptionTextConfig.maxLines,
+                                overflow = descriptionTextConfig.overflow,
+                            )
+                        }
                     }
 
                     state.headerConfig.relyingPartyData?.let { safeRelyingPartyData ->
@@ -301,6 +326,18 @@ private fun Content(
                 is Effect.Navigation -> onNavigationRequested(effect)
             }
         }.collect()
+    }
+}
+
+/** GRNET fork: [text] with each occurrence of each of [parts] in bold (weight 600). */
+private fun emphasized(text: String, parts: List<String>): AnnotatedString = buildAnnotatedString {
+    append(text)
+    parts.filter { it.isNotEmpty() }.forEach { part ->
+        var start = text.indexOf(part)
+        while (start >= 0) {
+            addStyle(SpanStyle(fontWeight = FontWeight.W600), start, start + part.length)
+            start = text.indexOf(part, start + part.length)
+        }
     }
 }
 

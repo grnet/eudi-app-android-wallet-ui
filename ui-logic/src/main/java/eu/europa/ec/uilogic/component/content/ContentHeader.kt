@@ -53,6 +53,8 @@ import kotlinx.serialization.Serializable
  * @property mainText The main title or heading text.
  * @property mainTextConfig Configuration for the appearance of the main text.
  * @property relyingPartyData Data for displaying information about the relying party, if applicable.
+ * @property descriptionEmphasis GRNET fork: parts of [description] to show in bold, such as the
+ * amount and the payee of an approved payment; where a screen supports it.
  */
 @Serializable
 data class ContentHeaderConfig(
@@ -62,6 +64,7 @@ data class ContentHeaderConfig(
     val mainText: String? = null,
     val mainTextConfig: TextConfig? = null,
     val relyingPartyData: RelyingPartyDataUi? = null,
+    val descriptionEmphasis: List<String> = emptyList(),
 )
 
 /**
