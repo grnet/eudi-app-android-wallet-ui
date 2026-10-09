@@ -61,6 +61,9 @@ data class ConsentWarningSection(
 /**
  * The consent screens' sticky bottom: a Cancel | confirm button pair with the registration
  * warning, when present, docked above the buttons.
+ *
+ * [showPrimaryButtonIcon] (GRNET fork) leaves the confirm button's check mark out, for a label
+ * that needs the room, such as a payment's amount.
  */
 @Composable
 fun ConsentStickyBottomSection(
@@ -73,6 +76,7 @@ fun ConsentStickyBottomSection(
     primaryButtonEnabled: Boolean,
     onPrimaryButtonClick: () -> Unit,
     onCancelButtonClick: () -> Unit,
+    showPrimaryButtonIcon: Boolean = true,
 ) {
     Column(
         modifier = modifier,
@@ -130,10 +134,12 @@ fun ConsentStickyBottomSection(
                     showDivider = false,
                 )
             ) {
-                WrapIcon(
-                    iconData = AppIcons.Check,
-                )
-                HSpacer.Small()
+                if (showPrimaryButtonIcon) {
+                    WrapIcon(
+                        iconData = AppIcons.Check,
+                    )
+                    HSpacer.Small()
+                }
                 Text(text = primaryButtonText)
             }
         }
