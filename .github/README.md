@@ -101,6 +101,10 @@ selector shows. A credential without display meta-data is shown as before.
   card's DCQL query id is no longer listed.
 - After the payment: "Payment approved" and what was approved, to whom; never
   "paid", as the wallet does not learn whether the payment went through.
+- In the lists of data requested and shared, a card is named only, without
+  its art or last four digits: those are display meta-data, never presented
+  to the verifier (rb-sca-card-dpc §2.9), and showing them there would
+  suggest the merchant receives them.
 
 An SD-JWT VC's `iat`, `exp` and `nbf` are shown as dates, titled Issued,
 Expires and Valid from, instead of seconds since 1970, for every credential

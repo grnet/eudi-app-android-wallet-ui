@@ -38,7 +38,6 @@ import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.ListItemDataUi
-import eu.europa.ec.uilogic.component.ListItemLeadingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
 import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
@@ -172,7 +171,7 @@ object RequestTransformer {
      * Builds the request-screen rows.
      * [claimsAreSelectable] = selectable (checkbox) vs read-only
      * leaves; the document headers are the same either way.
-     * [paymentCards] = GRNET fork: payment cards by document id, shown as the card.
+     * [paymentCards] = GRNET fork: payment cards by document id, named by their own name.
      */
     fun transformToUiItems(
         documentsDomain: List<DocumentPayloadDomain>,
@@ -190,16 +189,15 @@ object RequestTransformer {
                             docId = documentDomain.docId,
                             queryId = documentDomain.queryId,
                         ).encode(),
+                        // GRNET fork: a payment card by its own name only. Its art and
+                        // last four digits are display meta-data, never presented to the
+                        // verifier (rb-sca-card-dpc §2.9), so they stay out of what is shared.
                         mainContentData = ListItemMainContentDataUi.Text(
                             text = paymentCard?.name ?: documentDomain.docName
                         ),
-                        overlineText = paymentCard?.summary,
                         supportingContentData = ListItemSupportingContentDataUi.Text(
                             text = resourceProvider.getString(R.string.request_collapsed_supporting_text),
                         ),
-                        leadingContentData = paymentCard?.let {
-                            ListItemLeadingContentDataUi.PaymentCard(card = it)
-                        },
                         trailingContentData = ListItemTrailingContentDataUi.Icon(
                             iconData = AppIcons.KeyboardArrowDown
                         )
