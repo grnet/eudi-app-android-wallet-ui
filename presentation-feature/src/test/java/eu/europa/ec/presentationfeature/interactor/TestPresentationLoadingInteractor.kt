@@ -20,11 +20,15 @@ import android.content.Context
 import eu.europa.ec.authenticationlogic.controller.authentication.BiometricsAvailability
 import eu.europa.ec.authenticationlogic.controller.authentication.DeviceAuthenticationResult
 import eu.europa.ec.authenticationlogic.model.BiometricCrypto
+import eu.europa.ec.authenticationlogic.model.DeviceAuthenticationPrompt
 import eu.europa.ec.commonfeature.interactor.DeviceAuthenticationInteractor
 import eu.europa.ec.corelogic.controller.SendRequestedDocumentsPartialState
 import eu.europa.ec.corelogic.controller.WalletCorePartialState
 import eu.europa.ec.corelogic.controller.WalletCorePresentationController
 import eu.europa.ec.corelogic.model.AuthenticationData
+import eu.europa.ec.corelogic.model.PresentationTransactionDataDomain
+import eu.europa.ec.resourceslogic.R
+import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.testfeature.util.mockedNotifyOnAuthenticationFailure
 import eu.europa.ec.testfeature.util.mockedPlainFailureMessage
 import eu.europa.ec.testfeature.util.mockedUriPath1
@@ -32,6 +36,7 @@ import eu.europa.ec.testlogic.extension.runFlowTest
 import eu.europa.ec.testlogic.extension.runTest
 import eu.europa.ec.testlogic.extension.toFlow
 import eu.europa.ec.testlogic.rule.CoroutineTestRule
+import java.net.URI
 import junit.framework.TestCase
 import junit.framework.TestCase.assertEquals
 import kotlinx.coroutines.flow.asFlow
@@ -47,7 +52,6 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.net.URI
 
 class TestPresentationLoadingInteractor {
 
@@ -66,6 +70,9 @@ class TestPresentationLoadingInteractor {
     @Mock
     private lateinit var resultHandler: DeviceAuthenticationResult
 
+    @Mock
+    private lateinit var resourceProvider: ResourceProvider
+
     private lateinit var interactor: PresentationLoadingInteractor
 
     private lateinit var closeable: AutoCloseable
@@ -78,7 +85,8 @@ class TestPresentationLoadingInteractor {
 
         interactor = PresentationLoadingInteractorImpl(
             walletCorePresentationController = walletCorePresentationController,
-            deviceAuthenticationInteractor = deviceAuthenticationInteractor
+            deviceAuthenticationInteractor = deviceAuthenticationInteractor,
+            resourceProvider = resourceProvider,
         )
 
         crypto = BiometricCrypto(cryptoObject = null)
@@ -366,6 +374,58 @@ class TestPresentationLoadingInteractor {
             )
     }
 
+    // GRNET fork, Case 1b:
+    // 1. deviceAuthenticationInteractor.getBiometricsAvailability returns:
+    // BiometricsAvailability.CanAuthenticate
+    // 2. the disclosed transaction data is a TS12 card payment.
+
+    // Case 1b Expected Result:
+    // deviceAuthenticationInteractor.authenticateWithBiometrics called once, with a prompt that
+    // says what it approves: "Pay 70.00 EUR", "to Parthenon Museum".
+    @Test
+    fun `Given case 1b, When handleUserAuthentication is called for a payment, Then the prompt names the payment`() {
+        // Given
+        mockBiometricsAvailabilityResponse(
+            response = BiometricsAvailability.CanAuthenticate
+        )
+        whenever(walletCorePresentationController.disclosedTransactionData).thenReturn(
+            listOf(
+                PresentationTransactionDataDomain.Payment(
+                    displayName = null,
+                    credentialIds = listOf("sca_card_dpc"),
+                    transactionId = null,
+                    dateTime = null,
+                    payeeName = "Parthenon Museum",
+                    payeeId = null,
+                    amount = "70",
+                    currency = "EUR",
+                )
+            )
+        )
+        whenever(resourceProvider.getString(R.string.request_sticky_button_text_payment, "70.00 EUR"))
+            .thenReturn("Pay 70.00 EUR")
+        whenever(resourceProvider.getString(R.string.request_transaction_payment_to, "Parthenon Museum"))
+            .thenReturn("to Parthenon Museum")
+
+        // When
+        interactor.handleUserAuthentication(
+            context = context,
+            crypto = crypto,
+            notifyOnAuthenticationFailure = mockedNotifyOnAuthenticationFailure,
+            resultHandler = resultHandler
+        )
+
+        // Then
+        verify(deviceAuthenticationInteractor, times(1))
+            .authenticateWithBiometrics(
+                context,
+                crypto,
+                mockedNotifyOnAuthenticationFailure,
+                resultHandler,
+                DeviceAuthenticationPrompt(title = "Pay 70.00 EUR", subtitle = "to Parthenon Museum"),
+            )
+    }
+
     // Case 2:
     // 1. deviceAuthenticationInteractor.getBiometricsAvailability returns:
     // BiometricsAvailability.NonEnrolled
@@ -532,6 +592,7 @@ class TestPresentationLoadingInteractor {
         // When
         val newInteractor = PresentationLoadingInteractorImpl(
             deviceAuthenticationInteractor = deviceAuthenticationInteractor,
+            resourceProvider = resourceProvider,
         )
 
         // Then
