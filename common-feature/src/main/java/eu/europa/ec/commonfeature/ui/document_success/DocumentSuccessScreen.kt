@@ -276,8 +276,12 @@ private fun Content(
                     }
 
                     state.headerConfig.relyingPartyData?.let { safeRelyingPartyData ->
+                        // GRNET fork: room between the description and the logo, which would
+                        // otherwise sit close under the text.
                         RelyingParty(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = SPACING_SMALL.dp),
                             relyingPartyData = safeRelyingPartyData,
                             layout = RelyingPartyLayout.StackedCentered,
                         )
