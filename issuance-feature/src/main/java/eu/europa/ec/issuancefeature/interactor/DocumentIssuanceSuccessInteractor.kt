@@ -84,14 +84,27 @@ class DocumentIssuanceSuccessInteractorImpl(
                     val document =
                         walletCoreDocumentsController.getDocumentById(documentId = documentId) as IssuedDocument
 
-                    val localizedIssuerMetadata = document.localizedIssuerMetadata(userLocale)
+                    // GRNET fork: a payment card is shown as the card, by its own name.
+                    val paymentCard = PaymentCardUi.from(document)
+                    paymentCard?.let { paymentCards[documentId] = it }
 
-                    localizedIssuerMetadata?.name?.let { safeIssuerName ->
-                        issuerName = safeIssuerName
-                    }
+                    // GRNET fork: a payment card's issuer is its bank, when the card names one
+                    // (rb-sca-card-dpc §2.9), with the bank's logo, or none, never the issuing
+                    // service's.
+                    val cardIssuerName = paymentCard?.issuerName
+                    if (cardIssuerName != null) {
+                        issuerName = cardIssuerName
+                        issuerLogo = paymentCard?.issuerLogo
+                    } else {
+                        val localizedIssuerMetadata = document.localizedIssuerMetadata(userLocale)
 
-                    localizedIssuerMetadata?.logo?.uri?.let { safeIssuerLogo ->
-                        issuerLogo = safeIssuerLogo
+                        localizedIssuerMetadata?.name?.let { safeIssuerName ->
+                            issuerName = safeIssuerName
+                        }
+
+                        localizedIssuerMetadata?.logo?.uri?.let { safeIssuerLogo ->
+                            issuerLogo = safeIssuerLogo
+                        }
                     }
 
                     val claimsPaths = document.data.claims.flatMap { claim ->
@@ -111,10 +124,6 @@ class DocumentIssuanceSuccessInteractorImpl(
                             queryId = null,
                         )
                     }
-
-                    // GRNET fork: a payment card is shown as the card, by its own name.
-                    val paymentCard = PaymentCardUi.from(document)
-                    paymentCard?.let { paymentCards[documentId] = it }
 
                     val documentUi = ExpandableListItemUi.NestedListItem(
                         header = ListItemDataUi(
@@ -141,13 +150,15 @@ class DocumentIssuanceSuccessInteractorImpl(
             } else {
                 resourceProvider.getString(R.string.issuance_success_header_description)
             }
-            // GRNET fork: when what was added is payment cards only, the cards themselves, which
-            // carry their bank's and network's branding, stand in for the issuer.
+            // GRNET fork: when what was added is payment cards only, and none names its issuer,
+            // the cards themselves, which carry their bank's and network's branding, stand in for
+            // the issuer.
             val onlyPaymentCards = documentsUi.isNotEmpty() && paymentCards.size == documentsUi.size
+            val hideIssuer = onlyPaymentCards && paymentCards.values.none { it.issuerName != null }
 
             val headerConfig = ContentHeaderConfig(
                 description = headerConfigDescription,
-                relyingPartyData = if (onlyPaymentCards) {
+                relyingPartyData = if (hideIssuer) {
                     null
                 } else {
                     RelyingPartyDataUi(
