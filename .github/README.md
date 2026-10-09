@@ -95,10 +95,12 @@ selector shows. A credential without display meta-data is shown as before.
   last four digits, and no count of instances, as a card is reused, not used up.
 - Document details and "Card added" after issuance: the card itself, above its
   data.
-- Payment to approve: the payment comes first, with its amount, its payee and
-  the card it is bound to, then the data shared with it; the button reads
-  "Approve 38.00 EUR"; the date is shown in the device's time zone, and the
-  card's DCQL query id is no longer listed.
+- Confirm payment: the screen is titled as a payment, not as data sharing; the
+  relying party is labelled "Requested by", told apart from the payee; the
+  payment comes first, with its amount, its payee and the card it is bound
+  to, then the data shared with it; the button reads "Pay 38.00 EUR"; the date
+  is shown in the device's time zone, and the card's DCQL query id is no
+  longer listed.
 - After the payment: "Payment approved" and what was approved, to whom; never
   "paid", as the wallet does not learn whether the payment went through.
 - In the lists of data requested and shared, a card is named only, without
