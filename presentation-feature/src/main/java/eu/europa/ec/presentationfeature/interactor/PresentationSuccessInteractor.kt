@@ -35,6 +35,7 @@ import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.ListItemDataUi
+import eu.europa.ec.uilogic.component.ListItemLeadingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
 import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
@@ -51,7 +52,6 @@ sealed class PresentationSuccessInteractorGetUiItemsPartialState {
         val documentsUi: List<ExpandableListItemUi.NestedListItem>,
         val headerConfig: ContentHeaderConfig,
         val bannerText: String,
-        val paymentCards: Map<String, PaymentCardUi> = emptyMap(),
     ) : PresentationSuccessInteractorGetUiItemsPartialState()
 
     data class Failed(
@@ -92,7 +92,6 @@ class PresentationSuccessInteractorImpl(
         return flow {
 
             val documentsUi = mutableListOf<ExpandableListItemUi.NestedListItem>()
-            val paymentCards = mutableMapOf<String, PaymentCardUi>()
 
             // GRNET fork: the TS12 card payment the user approved, if that is what this was.
             val payment = walletCorePresentationController.disclosedTransactionData
@@ -138,9 +137,9 @@ class PresentationSuccessInteractorImpl(
                             queryId = selection.queryId,
                         ).encode()
 
-                        // GRNET fork: a payment card is shown as the card, by its own name.
+                        // GRNET fork: a payment card is recalled by its name, its art and its
+                        // number; the card itself was shown where the payment was approved.
                         val paymentCard = PaymentCardUi.from(document)
-                        paymentCard?.let { paymentCards[itemId] = it }
 
                         val disclosedDocumentUi = ExpandableListItemUi.NestedListItem(
                             header = ListItemDataUi(
@@ -148,6 +147,10 @@ class PresentationSuccessInteractorImpl(
                                 mainContentData = ListItemMainContentDataUi.Text(
                                     text = paymentCard?.name ?: document.name
                                 ),
+                                overlineText = paymentCard?.summary,
+                                leadingContentData = paymentCard?.let {
+                                    ListItemLeadingContentDataUi.PaymentCard(card = it)
+                                },
                                 supportingContentData = ListItemSupportingContentDataUi.Text(
                                     text = resourceProvider.getString(R.string.document_success_collapsed_supporting_text),
                                 ),
@@ -199,7 +202,6 @@ class PresentationSuccessInteractorImpl(
                         if (payment != null) R.string.document_success_banner_text_payment
                         else R.string.document_success_banner_text
                     ),
-                    paymentCards = paymentCards,
                 )
             )
         }.safeAsync {
