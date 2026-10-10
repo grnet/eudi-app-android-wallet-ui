@@ -198,7 +198,14 @@ class DocumentsInteractorImpl(
                 else -> {
                     emptyList()
                 }
-            }.groupBy {
+            }.groupPids(
+                // GRNET fork: a person's PIDs as one row, after filtering, so that search and
+                // filters still apply to each of them.
+                title = { resourceProvider.getString(R.string.documents_screen_pid_group_title) },
+                supportingText = { count ->
+                    resourceProvider.getString(R.string.documents_screen_pid_group_supporting_text, count)
+                },
+            ).groupBy {
                 it.documentCategory
             }.toList().sortedBy { it.first.order }
 
@@ -330,10 +337,17 @@ class DocumentsInteractorImpl(
 
                             val documentName = paymentCard?.name ?: document.name
 
+                            // GRNET fork: an issued PID's group, see PidGroups.kt.
+                            val pidGroupKey = document.takeIf { documentIdentifier.isPid() }
+                                ?.pidGroupKey(issuer = issuerName)
+
                             val documentSearchTags = buildList {
                                 add(documentName)
                                 if (issuerName.isNotBlank()) {
                                     add(issuerName)
+                                }
+                                if (pidGroupKey != null) {
+                                    add(resourceProvider.getString(R.string.documents_screen_pid_group_title))
                                 }
                                 paymentCard?.lastFour?.let { add(it) }
                             }
@@ -418,6 +432,7 @@ class DocumentsInteractorImpl(
                                     ),
                                     documentIdentifier = documentIdentifier,
                                     documentCategory = documentCategory,
+                                    pidGroupKey = pidGroupKey,
                                 ),
                                 attributes = DocumentsFilterableAttributes(
                                     searchTags = documentSearchTags,

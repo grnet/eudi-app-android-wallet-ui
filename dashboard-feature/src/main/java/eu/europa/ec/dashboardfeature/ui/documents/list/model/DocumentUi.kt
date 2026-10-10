@@ -20,11 +20,20 @@ import eu.europa.ec.businesslogic.validator.model.FilterableItemPayload
 import eu.europa.ec.corelogic.model.DocumentCategory
 import eu.europa.ec.corelogic.model.DocumentIdentifier
 import eu.europa.ec.dashboardfeature.ui.documents.detail.model.DocumentIssuanceStateUi
+import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.uilogic.component.ListItemDataUi
 
+/**
+ * @property pidGroupKey GRNET fork: for an issued PID, the issuer and the person it identifies;
+ * PIDs with the same key are shown as one row, see `groupPids`.
+ * @property groupMemberIds GRNET fork: for the row of such a group, the documents in it; empty for
+ * the row of a single document.
+ */
 data class DocumentUi(
     val documentIssuanceState: DocumentIssuanceStateUi,
     val uiData: ListItemDataUi,
     val documentIdentifier: DocumentIdentifier,
     val documentCategory: DocumentCategory,
+    val pidGroupKey: String? = null,
+    val groupMemberIds: List<DocumentId> = emptyList(),
 ) : FilterableItemPayload
