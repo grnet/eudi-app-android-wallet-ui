@@ -44,7 +44,10 @@ sealed class Effect : ViewSideEffect {
 
     sealed class Navigation : Effect() {
         data class SwitchModule(val moduleRoute: ModuleRoute) : Navigation()
-        data class SwitchScreen(val route: String) : Navigation()
+        data class SwitchScreen(
+            val route: String,
+            val dcApiRequestArguments: String? = null,
+        ) : Navigation()
         data object Finish : Navigation()
     }
 }
@@ -79,7 +82,12 @@ class SplashViewModel(
 
             when (val result = interactor.getAfterSplashRoute()) {
                 is SplashRoutePartialState.Success -> {
-                    setEffect { Effect.Navigation.SwitchScreen(result.route) }
+                    setEffect {
+                        Effect.Navigation.SwitchScreen(
+                            route = result.route,
+                            dcApiRequestArguments = result.dcApiRequestArguments,
+                        )
+                    }
                 }
 
                 is SplashRoutePartialState.Failure -> {

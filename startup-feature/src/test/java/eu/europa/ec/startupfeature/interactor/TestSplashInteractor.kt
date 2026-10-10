@@ -23,6 +23,8 @@ import eu.europa.ec.commonfeature.config.BiometricUiConfig
 import eu.europa.ec.commonfeature.config.IssuanceFlowType
 import eu.europa.ec.commonfeature.config.IssuanceUiConfig
 import eu.europa.ec.commonfeature.config.OnBackNavigationConfig
+import eu.europa.ec.commonfeature.config.PresentationMode
+import eu.europa.ec.commonfeature.config.RequestUriConfig
 import eu.europa.ec.commonfeature.config.TrustMarkMode
 import eu.europa.ec.commonfeature.config.TrustMarkUiConfig
 import eu.europa.ec.commonfeature.interactor.QuickPinInteractor
@@ -40,6 +42,7 @@ import eu.europa.ec.uilogic.config.NavigationType
 import eu.europa.ec.uilogic.navigation.CommonScreens
 import eu.europa.ec.uilogic.navigation.DashboardScreens
 import eu.europa.ec.uilogic.navigation.IssuanceScreens
+import eu.europa.ec.uilogic.navigation.PresentationScreens
 import eu.europa.ec.uilogic.serializer.UiSerializer
 import junit.framework.TestCase.assertEquals
 import org.junit.After
@@ -224,6 +227,8 @@ class TestSplashInteractor {
 
     // Case 5 Expected Result:
     // The BIOMETRIC route, with biometricConfig = the serialized BiometricUiConfig payload.
+    // GRNET fork: and the arguments of the request screen, to open a pending request from a
+    // browser without unlocking the wallet first (DcApi, userAuthenticated = false).
     @Test
     fun `Given Case 5, When getAfterSplashRoute is called, Then Case 5 Expected Result is returned`() {
         coroutineRule.runTest {
@@ -238,6 +243,17 @@ class TestSplashInteractor {
 
             val expectedBiometricConfig = buildBiometricUiConfig(shouldActivateWithPid = false)
             mockBiometricConfigSerialization(expectedBiometricConfig)
+            whenever(
+                uiSerializer.toBase64(
+                    model = RequestUriConfig(
+                        PresentationMode.DcApi(
+                            initiatorRoute = PresentationScreens.PresentationRequest.screenRoute,
+                            userAuthenticated = false,
+                        )
+                    ),
+                    parser = RequestUriConfig.Parser
+                )
+            ).thenReturn(mockedDcApiRequestConfigBase64)
 
             // When
             val result = interactor.getAfterSplashRoute()
@@ -245,7 +261,13 @@ class TestSplashInteractor {
             // Then
             val expectedResult =
                 "${CommonScreens.Biometric.screenName}?biometricConfig=$mockedBiometricConfigBase64"
-            assertEquals(SplashRoutePartialState.Success(expectedResult), result)
+            assertEquals(
+                SplashRoutePartialState.Success(
+                    route = expectedResult,
+                    dcApiRequestArguments = "?${RequestUriConfig.serializedKeyName}=$mockedDcApiRequestConfigBase64",
+                ),
+                result
+            )
         }
     }
 
@@ -500,6 +522,7 @@ class TestSplashInteractor {
         "Biometric subtitle when biometrics not enabled"
     private val mockedIssuanceConfigBase64 = "mockedIssuanceConfigBase64"
     private val mockedBiometricConfigBase64 = "mockedBiometricConfigBase64"
+    private val mockedDcApiRequestConfigBase64 = "mockedDcApiRequestConfigBase64"
     private val mockedIntroductionCompleted = true
     private val mockedWelcomeConfigBase64 = "mockedWelcomeConfigBase64"
     private val mockedWelcomeRoute =

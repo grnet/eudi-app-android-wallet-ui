@@ -228,7 +228,8 @@ class PresentationLoadingViewModel(
                     viewModelScope.launch {
                         setEffect { popEffect }
                     }
-                }
+                },
+                onAuthenticated = authenticationData.onAuthenticated,
             )
         )
     }

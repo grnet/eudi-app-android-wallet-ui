@@ -14,17 +14,13 @@
  * governing permissions and limitations under the Licence.
  */
 
-package eu.europa.ec.corelogic.model
-
-import eu.europa.ec.authenticationlogic.model.BiometricCrypto
-import eu.europa.ec.authenticationlogic.model.DeviceAuthenticationMethod
+package eu.europa.ec.authenticationlogic.model
 
 /**
- * @property onAuthenticated GRNET fork: how the user authenticated, before
- * [onAuthenticationSuccess].
+ * GRNET fork: what the system's authentication prompt says, instead of its generic text, such as
+ * the payment that the authentication approves: "Pay 70.00 EUR", "to Parthenon Museum".
  */
-data class AuthenticationData(
-    val crypto: BiometricCrypto,
-    val onAuthenticationSuccess: () -> Unit,
-    val onAuthenticated: (DeviceAuthenticationMethod) -> Unit = {},
+data class DeviceAuthenticationPrompt(
+    val title: String,
+    val subtitle: String? = null,
 )

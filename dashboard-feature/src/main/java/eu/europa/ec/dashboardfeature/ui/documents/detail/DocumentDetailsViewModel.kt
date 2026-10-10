@@ -35,6 +35,7 @@ import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.component.IssuerDetailsCardDataUi
+import eu.europa.ec.uilogic.component.PaymentCardUi
 import eu.europa.ec.uilogic.component.content.ContentErrorConfig
 import eu.europa.ec.uilogic.component.wrap.BottomSheetTextDataUi
 import eu.europa.ec.uilogic.extension.toggleExpansionState
@@ -63,6 +64,7 @@ data class State(
     val title: String? = null,
     val issuerDetails: IssuerDetailsCardDataUi? = null,
     val documentCredentialsInfoUi: DocumentCredentialsInfoUi? = null,
+    val paymentCard: PaymentCardUi? = null,
 
     val isDocumentBookmarked: Boolean = false,
     val hideSensitiveContent: Boolean = true,
@@ -335,7 +337,8 @@ class DocumentDetailsViewModel(
                                 error = null,
                                 documentDetailsUi = documentDetailsUi,
                                 documentCredentialsInfoUi = response.documentCredentialsInfoUi,
-                                title = documentDetailsUi.documentName,
+                                title = response.paymentCard?.name ?: documentDetailsUi.documentName,
+                                paymentCard = response.paymentCard,
                                 isDocumentBookmarked = response.documentIsBookmarked,
                                 issuerDetails = response.issuerDetails,
                             )

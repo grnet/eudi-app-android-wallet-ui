@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +59,7 @@ import java.net.URI
  * @property uniqueId the party's registered identifier, rendered as an "(ID: …)" line;
  * hidden when null.
  * @property description an optional supporting line under the identity.
+ * @property emphasizeName GRNET fork: whether [name] is shown in bold.
  */
 @Serializable
 data class RelyingPartyDataUi(
@@ -66,6 +68,7 @@ data class RelyingPartyDataUi(
     val name: String,
     val uniqueId: String?,
     val description: String?,
+    val emphasizeName: Boolean = false,
 )
 
 /**
@@ -118,10 +121,14 @@ fun RelyingParty(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             relyingPartyData.logo?.let { safeLogo ->
+                // GRNET fork: no taller than STACKED_LOGO_MAX_HEIGHT, so that a square logo is not
+                // drawn half the screen wide; a wide one is drawn as before.
                 RelyingPartyLogo(
-                    modifier = Modifier.fillMaxWidth(0.5f),
+                    modifier = Modifier
+                        .fillMaxWidth(0.5f)
+                        .heightIn(max = STACKED_LOGO_MAX_HEIGHT.dp),
                     logo = safeLogo,
-                    contentScale = ContentScale.FillWidth,
+                    contentScale = ContentScale.Fit,
                 )
                 VSpacer.Small()
             }
@@ -135,6 +142,9 @@ fun RelyingParty(
         }
     }
 }
+
+/** GRNET fork: the height of a logo in [RelyingPartyLayout.StackedCentered], at most. */
+private const val STACKED_LOGO_MAX_HEIGHT = 72
 
 @Composable
 private fun RelyingPartyLogo(
@@ -177,7 +187,8 @@ private fun RelyingPartyIdentity(
                 WrapText(
                     text = name,
                     textConfig = TextConfig(
-                        styleKey = TextStyleKey.BodyMedium,
+                        // GRNET fork: in bold where the screen asks for it.
+                        styleKey = if (emphasizeName) TextStyleKey.BodyMediumBold else TextStyleKey.BodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = textAlign,
                     ),

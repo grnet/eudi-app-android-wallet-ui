@@ -16,11 +16,14 @@
 
 package eu.europa.ec.corelogic.transactiondata
 
+import eu.europa.ec.eudi.wallet.transfer.openId4vp.transactionData.TransactionDataKeyBinding
+import java.util.UUID
 import kotlinx.io.bytestring.ByteString
 import kotlinx.io.bytestring.decodeToString
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import org.multipaz.documenttype.TransactionType
 import org.multipaz.presentment.TransactionData
@@ -104,7 +107,7 @@ data class ScaPaymentPayee(
 object ScaPaymentTransactionType : TransactionType<ScaPayment>(
     displayName = "Payment",
     identifier = ScaPayment.TYPE,
-) {
+), TransactionDataKeyBinding {
     override fun parseOpenId4VpRequest(jsonString: String): ScaPayment =
         json.decodeFromString(ScaPayment.serializer(), jsonString)
 
@@ -120,4 +123,19 @@ object ScaPaymentTransactionType : TransactionType<ScaPayment>(
             hashAlgorithms = parseJoseHashAlgorithms(payment.hashAlgorithms),
         )
     }
+
+    /**
+     * GRNET fork: what CS-12 §7.3 item 8 adds to the Key Binding JWT of a payment's presentation:
+     * a fresh, random `jti`, which the relying party takes as the PSD2 authentication code, and
+     * the `amr` of how the user unlocked the card's key ([ScaKeyAuthentication]), when they did.
+     */
+    override fun keyBindingClaims(
+        transactionData: List<TransactionData<*>>,
+    ): Map<String, JsonElement> = buildMap {
+        put(JTI, JsonPrimitive(UUID.randomUUID().toString()))
+        ScaKeyAuthentication.takeAmr()?.let { amr -> put(AMR, amr) }
+    }
+
+    private const val JTI = "jti"
+    private const val AMR = "amr"
 }

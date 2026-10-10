@@ -62,6 +62,7 @@ import eu.europa.ec.uilogic.component.ListItemLeadingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
 import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
+import eu.europa.ec.uilogic.component.PaymentCardUi
 import eu.europa.ec.uilogic.component.ThemeColorKey
 import eu.europa.ec.uilogic.component.wrap.CheckboxDataUi
 import eu.europa.ec.uilogic.component.wrap.ExpandableListItemUi
@@ -306,22 +307,35 @@ class DocumentsInteractorImpl(
                             val localizedIssuerMetadata =
                                 document.localizedIssuerMetadata(userLocale)
 
-                            val issuerName = localizedIssuerMetadata?.name
+                            // GRNET fork: a payment card, shown as the card its issuer describes.
+                            val paymentCard = PaymentCardUi.from(document)
+
+                            // GRNET fork: a payment card's issuer, to search and filter by, is its
+                            // bank, when the card names one (rb-sca-card-dpc §2.9).
+                            val issuerName = paymentCard?.issuerName
+                                ?: localizedIssuerMetadata?.name
                                 ?: resourceProvider.getString(R.string.documents_screen_filters_unknown_issuer)
 
                             val documentIdentifier = document.toDocumentIdentifier()
 
-                            val documentCategory = documentIdentifier.toDocumentCategory(
-                                allCategories = documentCategories
-                            )
+                            // GRNET fork: payment cards are listed under Finance, whatever the
+                            // card issuer's own type of credential (rb-sca-card-dpc §2.8).
+                            val documentCategory = if (paymentCard != null) {
+                                DocumentCategory.Finance
+                            } else {
+                                documentIdentifier.toDocumentCategory(
+                                    allCategories = documentCategories
+                                )
+                            }
 
-                            val documentName = document.name
+                            val documentName = paymentCard?.name ?: document.name
 
                             val documentSearchTags = buildList {
                                 add(documentName)
                                 if (issuerName.isNotBlank()) {
                                     add(issuerName)
                                 }
+                                paymentCard?.lastFour?.let { add(it) }
                             }
 
                             val documentExpirationDate = document.getExpiryDate()
@@ -379,7 +393,9 @@ class DocumentsInteractorImpl(
                                 createDocumentTrailingContentData(
                                     documentCredentialsInfoUi = documentCredentialsInfoUi,
                                     documentLowOnCredentials = documentLowOnCredentials,
-                                    showBatchIssuanceCounter = showBatchIssuanceCounter
+                                    // GRNET fork: a payment card is reused, not used up, so its
+                                    // count of instances means nothing to the user.
+                                    showBatchIssuanceCounter = showBatchIssuanceCounter && paymentCard == null
                                 )
                             }
 
@@ -389,9 +405,11 @@ class DocumentsInteractorImpl(
                                     uiData = ListItemDataUi(
                                         itemId = document.id,
                                         mainContentData = ListItemMainContentDataUi.Text(text = documentName),
-                                        overlineText = issuerName,
+                                        overlineText = paymentCard?.summary ?: issuerName,
                                         supportingContentData = supportingContentData,
-                                        leadingContentData = ListItemLeadingContentDataUi.AsyncImage(
+                                        leadingContentData = paymentCard?.let {
+                                            ListItemLeadingContentDataUi.PaymentCard(card = it)
+                                        } ?: ListItemLeadingContentDataUi.AsyncImage(
                                             imageUrl = localizedIssuerMetadata?.logo?.uri.toString(),
                                             contentDescription = resourceProvider.getString(R.string.content_description_issuer_logo_icon),
                                             errorImage = AppIcons.Id,

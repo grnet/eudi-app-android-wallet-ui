@@ -80,6 +80,38 @@ flavour beside them, which also lets the transaction log read payments back.
   e.g. `38.00 EUR`, whatever the device's locale, and is never rounded.
 - No `amr` claim yet: it has to report the factors actually used at unlock.
 
+**Payment cards are shown as cards**, a WE BUILD SCA-Card (DPC) as its
+issuer's display meta-data describes it (rb-sca-card-dpc §2.9 and §4), read
+through wallet-core's `CardDisplay` and drawn by `PaymentCardFace`
+(`ui-logic/.../component/PaymentCard.kt`): the card art for the active theme,
+with "•••• •••• •••• 1234" and the expiry date over it, at the positions and
+sizes the issuer uses on its card choice page. The expiry is the credential's
+validity, as there too, since the display meta-data has none. The art is the
+copy wallet-core keeps on the device (`CardArtStore`), the one the credential
+selector shows. A credential without display meta-data is shown as before.
+
+- Documents: listed under Finance, whatever the card issuer's type of
+  credential, with the art as a thumbnail, the card's name, its network and
+  last four digits, and no count of instances, as a card is reused, not used up.
+- Document details and "Card added" after issuance: the card itself, above its
+  data.
+- Confirm payment: the screen is titled as a payment, not as data sharing; the
+  relying party is labelled "Requested by", told apart from the payee; the
+  payment comes first, with its amount, its payee and the card it is bound
+  to, then the data shared with it; the button reads "Pay 38.00 EUR"; the date
+  is shown in the device's time zone, and the card's DCQL query id is no
+  longer listed.
+- After the payment: "Payment approved" and what was approved, to whom; never
+  "paid", as the wallet does not learn whether the payment went through.
+- In the lists of data requested and shared, a card is named only, without
+  its art or last four digits: those are display meta-data, never presented
+  to the verifier (rb-sca-card-dpc §2.9), and showing them there would
+  suggest the merchant receives them.
+
+An SD-JWT VC's `iat`, `exp` and `nbf` are shown as dates, titled Issued,
+Expires and Valid from, instead of seconds since 1970, for every credential
+(`DocumentHelper`).
+
 ## Building for the demo
 
     ./gradlew assembleDevRelease \
@@ -196,7 +228,7 @@ key attestation validation is disabled. If it is enabled, it must list this
 build's package, `eu.europa.ec.euidi.grnet.dev`, and the SHA-256 digest of
 **our** signing certificate, not upstream's.
 
-**The wallet-core library is GRNET's release of it**, `0.31.0-grnet.3`, from
+**The wallet-core library is GRNET's release of it**, `0.31.0-grnet.4`, from
 the Maven repository of
 [grnet/eudi-lib-android-wallet-core](https://github.com/grnet/eudi-lib-android-wallet-core)
 on GitHub Pages. Its changes from upstream `0.31.0` are to the Android
@@ -204,7 +236,8 @@ credential selector: sharp 144 px credential icons, where upstream's 48 px
 ones come out speckled, and a TS12 payment shown as a payment, with the payee,
 the amount and the card, rather than the DPC as an identity document. The card
 is shown by its own name, last four digits and card art, which its issuer
-delivers with it as the WE BUILD DPC rulebook specifies. The
+delivers with it as the WE BUILD DPC rulebook specifies, and the app reads the
+same card display and card art for its own screens. The
 fork's README lists them, and the fork exists so GRNET changes can ship as
 releases. `settings.gradle.kts` takes
 its three artifacts, in `*-grnet.N` versions, from that repository only, and

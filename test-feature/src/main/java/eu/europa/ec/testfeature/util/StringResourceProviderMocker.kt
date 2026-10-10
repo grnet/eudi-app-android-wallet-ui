@@ -74,6 +74,10 @@ object StringResourceProviderMocker {
         val mockedStrings = listOf(
             R.string.document_details_boolean_item_true_readable_value to "yes",
             R.string.document_details_boolean_item_false_readable_value to "no",
+            // GRNET fork: the JWT times of an SD-JWT VC
+            R.string.document_details_claim_iat to "Issued",
+            R.string.document_details_claim_exp to "Expires",
+            R.string.document_details_claim_nbf to "Valid from",
         )
 
         mockResourceProviderStrings(resourceProvider, mockedStrings)

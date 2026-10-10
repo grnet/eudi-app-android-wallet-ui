@@ -21,16 +21,21 @@ import android.content.Intent
 import eu.europa.ec.authenticationlogic.controller.authentication.BiometricsAvailability
 import eu.europa.ec.authenticationlogic.controller.authentication.DeviceAuthenticationResult
 import eu.europa.ec.authenticationlogic.model.BiometricCrypto
+import eu.europa.ec.authenticationlogic.model.DeviceAuthenticationPrompt
 import eu.europa.ec.commonfeature.interactor.DeviceAuthenticationInteractor
 import eu.europa.ec.commonfeature.interactor.ScopedPresentationInteractor
 import eu.europa.ec.commonfeature.interactor.ScopedPresentationInteractorDelegate
+import eu.europa.ec.commonfeature.ui.request.transformer.formatPaymentAmount
 import eu.europa.ec.corelogic.controller.SendRequestedDocumentsPartialState
 import eu.europa.ec.corelogic.controller.WalletCorePartialState
 import eu.europa.ec.corelogic.controller.WalletCorePresentationController
 import eu.europa.ec.corelogic.model.AuthenticationData
+import eu.europa.ec.corelogic.model.PresentationTransactionDataDomain
+import eu.europa.ec.resourceslogic.R
+import eu.europa.ec.resourceslogic.provider.ResourceProvider
+import java.net.URI
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.net.URI
 
 sealed class PresentationLoadingObserveResponsePartialState {
     data class UserAuthenticationRequired(
@@ -64,6 +69,7 @@ interface PresentationLoadingInteractor : ScopedPresentationInteractor {
 
 class PresentationLoadingInteractorImpl(
     private val deviceAuthenticationInteractor: DeviceAuthenticationInteractor,
+    private val resourceProvider: ResourceProvider,
     walletCorePresentationController: WalletCorePresentationController? = null
 ) : PresentationLoadingInteractor,
     ScopedPresentationInteractorDelegate(walletCorePresentationController) {
@@ -117,6 +123,28 @@ class PresentationLoadingInteractorImpl(
         }
     }
 
+    /**
+     * GRNET fork: for a TS12 card payment, the prompt that unlocks the card's key says what it
+     * approves, as the request screen did: "Pay 70.00 EUR", "to Parthenon Museum". Else `null`,
+     * the generic text.
+     */
+    private fun paymentPrompt(): DeviceAuthenticationPrompt? {
+        val payment = walletCorePresentationController.disclosedTransactionData
+            .filterIsInstance<PresentationTransactionDataDomain.Payment>()
+            .firstOrNull()
+            ?: return null
+        return DeviceAuthenticationPrompt(
+            title = resourceProvider.getString(
+                R.string.request_sticky_button_text_payment,
+                formatPaymentAmount(amount = payment.amount, currency = payment.currency),
+            ),
+            subtitle = resourceProvider.getString(
+                R.string.request_transaction_payment_to,
+                payment.payeeName,
+            ),
+        )
+    }
+
     override fun handleUserAuthentication(
         context: Context,
         crypto: BiometricCrypto,
@@ -129,7 +157,8 @@ class PresentationLoadingInteractorImpl(
                     context = context,
                     crypto = crypto,
                     notifyOnAuthenticationFailure = notifyOnAuthenticationFailure,
-                    resultHandler = resultHandler
+                    resultHandler = resultHandler,
+                    prompt = paymentPrompt(),
                 )
             }
 

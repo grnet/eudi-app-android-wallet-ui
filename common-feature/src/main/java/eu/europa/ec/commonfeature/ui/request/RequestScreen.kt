@@ -17,6 +17,7 @@
 package eu.europa.ec.commonfeature.ui.request
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,9 +34,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.Dp
@@ -48,6 +51,7 @@ import eu.europa.ec.commonfeature.ui.request.model.RelyingPartyHeaderUi
 import eu.europa.ec.commonfeature.ui.request.model.RequestCombinationUi
 import eu.europa.ec.commonfeature.ui.request.model.RequestDataUi
 import eu.europa.ec.commonfeature.ui.request.model.RequestDocumentItemUi
+import eu.europa.ec.commonfeature.ui.request.model.RequestPaymentUi
 import eu.europa.ec.commonfeature.ui.request.model.RequestTransactionDataUi
 import eu.europa.ec.commonfeature.util.TestTag
 import eu.europa.ec.corelogic.model.ClaimDomain
@@ -63,8 +67,10 @@ import eu.europa.ec.uilogic.component.ListItemDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
 import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
+import eu.europa.ec.uilogic.component.PaymentCardFace
 import eu.europa.ec.uilogic.component.RelyingParty
 import eu.europa.ec.uilogic.component.RelyingPartyDataUi
+import eu.europa.ec.uilogic.component.RelyingPartyLayout
 import eu.europa.ec.uilogic.component.SectionTitle
 import eu.europa.ec.uilogic.component.content.ContentScreen
 import eu.europa.ec.uilogic.component.content.ContentTitle
@@ -85,6 +91,7 @@ import eu.europa.ec.uilogic.component.wrap.TextStyleKey
 import eu.europa.ec.uilogic.component.wrap.WrapExpandableListItem
 import eu.europa.ec.uilogic.component.wrap.WrapModalBottomSheet
 import eu.europa.ec.uilogic.component.wrap.WrapSelectableCard
+import eu.europa.ec.uilogic.component.wrap.WrapText
 import eu.europa.ec.uilogic.extension.applyTestTag
 import eu.europa.ec.uilogic.extension.finish
 import eu.europa.ec.uilogic.extension.openUrl
@@ -134,11 +141,18 @@ fun RequestScreen(
                         )
                     },
                 ),
-                primaryButtonText = stringResource(R.string.request_sticky_button_text),
+                // GRNET fork: for a payment, "Pay" and its amount.
+                primaryButtonText = state.requestDataUi.selectedCombination?.transactionData?.payment
+                    ?.let { stringResource(R.string.request_sticky_button_text_payment, it.amount) }
+                    ?: stringResource(R.string.request_sticky_button_text),
                 cancelButtonText = stringResource(R.string.request_cancel_button_text),
                 primaryButtonEnabled = !state.isLoading && state.allowShare,
                 onPrimaryButtonClick = { viewModel.setEvent(Event.StickyButtonPressed) },
                 onCancelButtonClick = { viewModel.setEvent(Event.OnBack) },
+                // GRNET fork: no check mark beside "Pay 38.00 EUR", and Cancel only as wide as
+                // its word, so that the amount fits on one line.
+                showPrimaryButtonIcon = state.requestDataUi.selectedCombination?.transactionData?.payment == null,
+                primaryButtonTakesRoom = state.requestDataUi.selectedCombination?.transactionData?.payment != null,
             )
         },
         contentErrorConfig = state.error
@@ -223,6 +237,9 @@ private fun Content(
     val rendersDocuments = state.requestDataUi is RequestDataUi.Single ||
             state.requestDataUi is RequestDataUi.Multiple
 
+    // GRNET fork: a TS12 card payment is asked for as a payment, not as data sharing.
+    val isPayment = state.requestDataUi.selectedCombination?.transactionData?.payment != null
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -239,17 +256,37 @@ private fun Content(
         // Screen Header.
         ContentTitle(
             modifier = Modifier.fillMaxWidth(),
-            title = stringResource(R.string.request_screen_title),
+            title = stringResource(
+                if (isPayment) R.string.request_screen_title_payment else R.string.request_screen_title
+            ),
         )
 
-        state.relyingPartyHeader?.let { safeRelyingPartyHeader ->
-            VerifierHeaderSection(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = SPACING_SMALL.dp),
-                header = safeRelyingPartyHeader,
-                onPrivacyPolicyClick = { onEventSend(Event.PrivacyPolicyLinkClicked) },
-            )
+        // GRNET fork: for a payment, who asks is shown in the payment's summary instead, under
+        // the payee, labelled "Requested by" so that it is told apart from the payee.
+        val paymentRequester: (@Composable () -> Unit)? = state.relyingPartyHeader
+            ?.takeIf { isPayment }
+            ?.let { safeRelyingPartyHeader ->
+                {
+                    VerifierHeaderSection(
+                        modifier = Modifier.fillMaxWidth(),
+                        header = safeRelyingPartyHeader,
+                        onPrivacyPolicyClick = { onEventSend(Event.PrivacyPolicyLinkClicked) },
+                        caption = stringResource(R.string.request_relying_party_requested_by),
+                        centered = true,
+                    )
+                }
+            }
+
+        if (!isPayment) {
+            state.relyingPartyHeader?.let { safeRelyingPartyHeader ->
+                VerifierHeaderSection(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = SPACING_SMALL.dp),
+                    header = safeRelyingPartyHeader,
+                    onPrivacyPolicyClick = { onEventSend(Event.PrivacyPolicyLinkClicked) },
+                )
+            }
         }
 
         // Screen Main Content.
@@ -281,6 +318,8 @@ private fun Content(
                     Event.TransactionDocumentClicked(sectionId = sectionId, itemId = itemId),
                 )
             },
+            paymentRequester = paymentRequester,
+            hideClaimValues = state.hideClaimValues,
         )
     }
 
@@ -319,13 +358,27 @@ private fun VerifierHeaderSection(
     modifier: Modifier,
     header: RelyingPartyHeaderUi,
     onPrivacyPolicyClick: () -> Unit,
+    caption: String? = null,
+    centered: Boolean = false,
 ) {
     Column(modifier = modifier) {
+        caption?.let { safeCaption ->
+            WrapText(
+                modifier = Modifier.fillMaxWidth(),
+                text = safeCaption,
+                textConfig = TextConfig(
+                    styleKey = TextStyleKey.LabelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = if (centered) TextAlign.Center else TextAlign.Start,
+                ),
+            )
+        }
         RelyingParty(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = SPACING_SMALL.dp),
             relyingPartyData = header.relyingParty,
+            layout = if (centered) RelyingPartyLayout.StackedCentered else RelyingPartyLayout.InlineStart,
         )
 
         header.privacyPolicyUrl?.let { safePrivacyPolicyUrl ->
@@ -361,6 +414,8 @@ private fun DisplayRequestContent(
     onCredentialExpansionChange: (String) -> Unit,
     onTransactionExpansionChange: (String, String) -> Unit,
     onTransactionDocumentClick: (String, String) -> Unit,
+    paymentRequester: (@Composable () -> Unit)? = null,
+    hideClaimValues: Boolean = false,
 ) {
     when (requestDataUi) {
         is RequestDataUi.Initial -> Unit // Nothing to render until the request resolves.
@@ -373,20 +428,27 @@ private fun DisplayRequestContent(
         is RequestDataUi.Single -> Column(
             modifier = modifier,
         ) {
-            RequestedDataSectionTitle(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = SPACING_SMALL.dp),
-            )
+            // GRNET fork: a payment comes first, and the data shared with it after it.
+            val isPayment = requestDataUi.combination.transactionData?.payment != null
+            if (!isPayment) {
+                RequestedDataSectionTitle(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = SPACING_SMALL.dp),
+                )
+            }
             CombinationContent(
                 modifier = Modifier.fillMaxWidth(),
                 combination = requestDataUi.combination,
                 claimsAreSelectable = claimsAreSelectable,
                 transactionTitleStartPadding = 0.dp,
+                showRequestedDataTitle = isPayment,
                 onClaimClick = onClaimClick,
                 onCredentialExpansionChange = onCredentialExpansionChange,
                 onTransactionExpansionChange = onTransactionExpansionChange,
                 onTransactionDocumentClick = onTransactionDocumentClick,
+                paymentRequester = paymentRequester,
+                hideClaimValues = hideClaimValues,
             )
         }
 
@@ -407,6 +469,8 @@ private fun DisplayRequestContent(
                 onCredentialExpansionChange = onCredentialExpansionChange,
                 onTransactionExpansionChange = onTransactionExpansionChange,
                 onTransactionDocumentClick = onTransactionDocumentClick,
+                paymentRequester = paymentRequester,
+                hideClaimValues = hideClaimValues,
             )
         }
     }
@@ -437,6 +501,8 @@ private fun DisplayCombinationCards(
     onCredentialExpansionChange: (String) -> Unit,
     onTransactionExpansionChange: (String, String) -> Unit,
     onTransactionDocumentClick: (String, String) -> Unit,
+    paymentRequester: (@Composable () -> Unit)? = null,
+    hideClaimValues: Boolean = false,
 ) {
     Column(
         modifier = modifier,
@@ -462,6 +528,8 @@ private fun DisplayCombinationCards(
                     onCredentialExpansionChange = onCredentialExpansionChange,
                     onTransactionExpansionChange = onTransactionExpansionChange,
                     onTransactionDocumentClick = onTransactionDocumentClick,
+                    paymentRequester = paymentRequester,
+                    hideClaimValues = hideClaimValues,
                 )
             }
         }
@@ -478,18 +546,21 @@ private fun CombinationContent(
     onCredentialExpansionChange: (String) -> Unit,
     onTransactionExpansionChange: (String, String) -> Unit,
     onTransactionDocumentClick: (String, String) -> Unit,
+    showRequestedDataTitle: Boolean = false,
+    paymentRequester: (@Composable () -> Unit)? = null,
+    hideClaimValues: Boolean = false,
 ) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp),
-    ) {
+    val requestItems: @Composable () -> Unit = {
         DisplayRequestItems(
             modifier = Modifier.fillMaxWidth(),
             requestDocuments = combination.documents,
             claimsAreSelectable = claimsAreSelectable,
             onClaimClick = onClaimClick,
             onExpansionChange = onCredentialExpansionChange,
+            hideClaimValues = hideClaimValues,
         )
+    }
+    val transactionData: @Composable () -> Unit = {
         combination.transactionData?.let { safeTransactionData ->
             TransactionDataSection(
                 modifier = Modifier.fillMaxWidth(),
@@ -501,7 +572,26 @@ private fun CombinationContent(
                 onDocumentClick = { itemId ->
                     onTransactionDocumentClick(safeTransactionData.details.header.itemId, itemId)
                 },
+                paymentRequester = paymentRequester,
             )
+        }
+    }
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp),
+    ) {
+        // GRNET fork: a payment is what the user approves, so it comes first, and the data
+        // shared with it after it.
+        if (combination.transactionData?.payment != null) {
+            transactionData()
+            if (showRequestedDataTitle) {
+                RequestedDataSectionTitle(modifier = Modifier.fillMaxWidth())
+            }
+            requestItems()
+        } else {
+            requestItems()
+            transactionData()
         }
     }
 }
@@ -513,6 +603,7 @@ private fun DisplayRequestItems(
     claimsAreSelectable: Boolean,
     onClaimClick: (String) -> Unit,
     onExpansionChange: (String) -> Unit,
+    hideClaimValues: Boolean = false,
 ) {
     Column(
         modifier = modifier,
@@ -536,7 +627,7 @@ private fun DisplayRequestItems(
                 },
                 isExpanded = requestDocument.headerUi.isExpanded,
                 throttleClicks = false,
-                hideSensitiveContent = false,
+                hideSensitiveContent = hideClaimValues,
                 collapsedMainContentVerticalPadding = SPACING_MEDIUM.dp,
                 expandedMainContentVerticalPadding = SPACING_MEDIUM.dp,
                 colors = CardDefaults.cardColors(
@@ -554,6 +645,7 @@ private fun TransactionDataSection(
     titleStartPadding: Dp,
     onExpansionChange: (String) -> Unit,
     onDocumentClick: (String) -> Unit,
+    paymentRequester: (@Composable () -> Unit)? = null,
 ) {
     val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceDim)
 
@@ -561,17 +653,29 @@ private fun TransactionDataSection(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
     ) {
-        SectionTitle(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = titleStartPadding),
-            text = transactionData.title,
-            textConfig = TextConfig(
-                styleKey = TextStyleKey.LabelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = Int.MAX_VALUE,
-            ),
-        )
+        // GRNET fork: a payment's section needs no title of its own: the screen's title says it.
+        if (transactionData.payment == null) {
+            SectionTitle(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = titleStartPadding),
+                text = transactionData.title,
+                textConfig = TextConfig(
+                    styleKey = TextStyleKey.LabelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = Int.MAX_VALUE,
+                ),
+            )
+        }
+        transactionData.payment?.let { safePayment ->
+            PaymentSummary(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = SPACING_SMALL.dp),
+                payment = safePayment,
+                requester = paymentRequester,
+            )
+        }
         WrapExpandableListItem(
             modifier = Modifier.fillMaxWidth(),
             header = transactionData.details.header,
@@ -585,6 +689,55 @@ private fun TransactionDataSection(
             colors = colors,
             throttleClicks = false,
         )
+    }
+}
+
+/**
+ * GRNET fork: what the user approves, at a glance: the amount, the payee, who asks ([requester])
+ * and the card the payment is bound to (TS12 dynamic linking).
+ */
+@Composable
+private fun PaymentSummary(
+    modifier: Modifier,
+    payment: RequestPaymentUi,
+    requester: (@Composable () -> Unit)? = null,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        WrapText(
+            text = payment.amount,
+            textConfig = TextConfig(
+                styleKey = TextStyleKey.HeadlineMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                maxLines = Int.MAX_VALUE,
+            ),
+        )
+        WrapText(
+            text = stringResource(R.string.request_transaction_payment_to, payment.payee),
+            textConfig = TextConfig(
+                styleKey = TextStyleKey.BodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = Int.MAX_VALUE,
+            ),
+        )
+        requester?.let { safeRequester ->
+            Box(modifier = Modifier.padding(top = SPACING_SMALL.dp)) {
+                safeRequester()
+            }
+        }
+        payment.card?.let { safeCard ->
+            PaymentCardFace(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = SPACING_SMALL.dp),
+                card = safeCard,
+            )
+        }
     }
 }
 

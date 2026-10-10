@@ -30,6 +30,7 @@ import eu.europa.ec.corelogic.controller.WalletCorePresentationController
 import eu.europa.ec.corelogic.model.RelyingPartyDomain
 import eu.europa.ec.corelogic.model.overaskedClaimsOrEmpty
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
+import eu.europa.ec.uilogic.component.PaymentCardUi
 import eu.europa.ec.uilogic.navigation.helper.IntentAction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.mapNotNull
@@ -54,6 +55,9 @@ interface PresentationRequestInteractor : ScopedPresentationInteractor {
     fun getRequestDocuments(): Flow<PresentationRequestInteractorPartialState>
     fun stopPresentation()
     fun updateRequestedDocuments(selectedCombination: RequestCombinationUi?)
+
+    /** GRNET fork: see [WalletCorePresentationController.disclosedKeysRequireUserAuthentication]. */
+    suspend fun disclosedKeysRequireUserAuthentication(): Boolean
     fun setConfig(config: RequestUriConfig, intentAction: IntentAction?)
 }
 
@@ -106,6 +110,11 @@ class PresentationRequestInteractorImpl(
                                 )
                             }
 
+                        // GRNET fork: payment cards are shown as the card.
+                        val paymentCards = storageDocuments.mapNotNull { document ->
+                            PaymentCardUi.from(document)?.let { document.id to it }
+                        }.toMap()
+
                         val combinationsUi = RequestTransformer.transformToCombinationsUi(
                             storageDocuments = storageDocuments,
                             resourceProvider = resourceProvider,
@@ -113,6 +122,7 @@ class PresentationRequestInteractorImpl(
                             combinationsDomain = combinationsDomain,
                             claimsAreSelectable = claimsAreSelectable,
                             overaskedClaims = response.relyingParty.registration.overaskedClaimsOrEmpty(),
+                            paymentCards = paymentCards,
                         ).getOrThrow()
                             .filter { it.documents.isNotEmpty() }
 
@@ -165,4 +175,7 @@ class PresentationRequestInteractorImpl(
 
         walletCorePresentationController.updateRequestedDocuments(disclosedDocuments = selections)
     }
+
+    override suspend fun disclosedKeysRequireUserAuthentication(): Boolean =
+        walletCorePresentationController.disclosedKeysRequireUserAuthentication()
 }

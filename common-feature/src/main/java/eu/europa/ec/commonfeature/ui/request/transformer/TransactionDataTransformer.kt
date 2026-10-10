@@ -15,6 +15,9 @@
  */
 package eu.europa.ec.commonfeature.ui.request.transformer
 
+import eu.europa.ec.businesslogic.util.FULL_DATETIME_PATTERN_24H_SEPARATED_BY_DASH
+import eu.europa.ec.businesslogic.util.formatInstant
+import eu.europa.ec.commonfeature.ui.request.model.RequestPaymentUi
 import eu.europa.ec.commonfeature.ui.request.model.RequestTransactionDataUi
 import eu.europa.ec.corelogic.model.DocumentChecksumDomain
 import eu.europa.ec.corelogic.model.PresentationMatchDomain
@@ -27,17 +30,23 @@ import eu.europa.ec.uilogic.component.ListItemDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
 import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
+import eu.europa.ec.uilogic.component.PaymentCardUi
 import eu.europa.ec.uilogic.component.wrap.ExpandableListItemUi
 import java.net.URI
+import java.time.OffsetDateTime
 import java.util.Currency
 
 class TransactionDataTransformer(
     private val resourceProvider: ResourceProvider,
 ) {
-    /** Matches belong to this combination only. */
+    /**
+     * Matches belong to this combination only. [paymentCards] are the wallet's payment cards, by
+     * document id, for the card a payment is bound to.
+     */
     fun transformToUi(
         matches: List<PresentationMatchDomain>,
         sectionId: String,
+        paymentCards: Map<String, PaymentCardUi> = emptyMap(),
     ): RequestTransactionDataUi? {
         val transactions = matches.flatMap { match -> match.transactionData }
         if (transactions.isEmpty()) return null
@@ -77,6 +86,20 @@ class TransactionDataTransformer(
                 isExpanded = hasPayment,
             ),
             documentUrlsByItemId = documentUrlsByItemId.toMap(),
+            payment = transactions
+                .filterIsInstance<PresentationTransactionDataDomain.Payment>()
+                .distinct()
+                .singleOrNull()
+                ?.let { payment ->
+                    RequestPaymentUi(
+                        amount = paymentAmount(amount = payment.amount, currency = payment.currency),
+                        payee = payment.payeeName,
+                        // The card is the credential its credential_ids name, by DCQL query id.
+                        card = matches
+                            .filter { match -> match.queryId in payment.credentialIds }
+                            .firstNotNullOfOrNull { match -> paymentCards[match.documentId] },
+                    )
+                },
         )
     }
 
@@ -280,7 +303,7 @@ class TransactionDataTransformer(
                         addField(
                             itemId = "$transactionId/date-time",
                             labelRes = R.string.request_transaction_date_time,
-                            value = transaction.dateTime,
+                            value = paymentDateTime(dateTime = transaction.dateTime),
                         )
                         addField(
                             itemId = "$transactionId/payee-id",
@@ -292,10 +315,8 @@ class TransactionDataTransformer(
                             labelRes = R.string.request_transaction_id,
                             value = transaction.transactionId,
                         )
-                        addCredentialReferences(
-                            itemId = transactionId,
-                            credentialIds = transaction.credentialIds,
-                        )
+                        // The credentials a payment binds to are not listed by their DCQL query
+                        // ids, which mean nothing to the user: the card is shown with the payment.
                     }
 
                     is PresentationTransactionDataDomain.Unavailable -> addField(
@@ -437,19 +458,19 @@ class TransactionDataTransformer(
         return resourceProvider.getString(labelRes)
     }
 
+    private fun paymentAmount(amount: String, currency: String): String =
+        formatPaymentAmount(amount = amount, currency = currency)
+
     /**
-     * GRNET fork: the amount with its ISO 4217 currency code, in the same form whatever the
-     * device's locale, e.g. "38.00 EUR". Minor units are added where the currency has them; a
-     * received digit is never dropped or rounded. An unknown currency or an amount that is not
-     * a number is shown as received.
+     * GRNET fork: the payment's ISO 8601 date and time in the device's time zone, e.g.
+     * "08 October 2026 - 21:56", or as received if it cannot be read.
      */
-    private fun paymentAmount(amount: String, currency: String): String {
-        val value = amount.toBigDecimalOrNull() ?: return "$amount $currency"
-        val minorUnits = runCatching { Currency.getInstance(currency).defaultFractionDigits }
+    private fun paymentDateTime(dateTime: String?): String? {
+        if (dateTime == null) return null
+        return runCatching { OffsetDateTime.parse(dateTime).toInstant() }
             .getOrNull()
-            ?.takeIf { it >= 0 }
-            ?: return "${value.toPlainString()} $currency"
-        return "${value.setScale(maxOf(value.scale(), minorUnits)).toPlainString()} $currency"
+            ?.formatInstant(FULL_DATETIME_PATTERN_24H_SEPARATED_BY_DASH)
+            ?: dateTime
     }
 
     private fun hashAlgorithm(oid: String): String {
@@ -471,4 +492,19 @@ class TransactionDataTransformer(
                     && (uri.port == -1 || uri.port in 1..65535)
         }
     }
+}
+
+/**
+ * GRNET fork: the amount with its ISO 4217 currency code, in the same form whatever the device's
+ * locale, e.g. "38.00 EUR". Minor units are added where the currency has them; a received digit is
+ * never dropped or rounded. An unknown currency or an amount that is not a number is shown as
+ * received.
+ */
+fun formatPaymentAmount(amount: String, currency: String): String {
+    val value = amount.toBigDecimalOrNull() ?: return "$amount $currency"
+    val minorUnits = runCatching { Currency.getInstance(currency).defaultFractionDigits }
+        .getOrNull()
+        ?.takeIf { it >= 0 }
+        ?: return "${value.toPlainString()} $currency"
+    return "${value.setScale(maxOf(value.scale(), minorUnits)).toPlainString()} $currency"
 }

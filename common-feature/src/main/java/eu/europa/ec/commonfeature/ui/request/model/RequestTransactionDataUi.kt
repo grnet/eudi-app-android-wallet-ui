@@ -15,6 +15,7 @@
  */
 package eu.europa.ec.commonfeature.ui.request.model
 
+import eu.europa.ec.uilogic.component.PaymentCardUi
 import eu.europa.ec.uilogic.component.wrap.ExpandableListItemUi
 
 data class RequestTransactionDataUi(
@@ -22,4 +23,20 @@ data class RequestTransactionDataUi(
     val details: ExpandableListItemUi.NestedListItem,
     /** Only document href actions, keyed by their prepared row IDs. */
     val documentUrlsByItemId: Map<String, String>,
+    /** GRNET fork: the payment, when the transaction is a single TS12 card payment. */
+    val payment: RequestPaymentUi? = null,
+)
+
+/**
+ * GRNET fork: a TS12 card payment as the user approves it: how much, to whom, and with which card
+ * (TS12 dynamic linking, "sign what you see").
+ *
+ * @property amount the amount with its currency, e.g. "38.00 EUR"
+ * @property payee the payee's name
+ * @property card the card the payment is bound to, if it is a payment card with display meta-data
+ */
+data class RequestPaymentUi(
+    val amount: String,
+    val payee: String,
+    val card: PaymentCardUi?,
 )

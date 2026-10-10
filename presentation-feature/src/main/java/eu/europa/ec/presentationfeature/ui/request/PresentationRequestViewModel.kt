@@ -43,6 +43,7 @@ import eu.europa.ec.uilogic.navigation.helper.IntentAction
 import eu.europa.ec.uilogic.navigation.helper.generateComposableArguments
 import eu.europa.ec.uilogic.navigation.helper.generateComposableNavigationLink
 import eu.europa.ec.uilogic.serializer.UiSerializer
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.KoinViewModel
@@ -55,7 +56,21 @@ class PresentationRequestViewModel(
     @InjectedParam private val requestUriConfigRaw: String
 ) : RequestViewModel() {
 
+    // GRNET fork: whether a key of the selected documents requires user authentication, such as
+    // a payment card's; then the presentation asks for it, bound to the key, and the wallet's own
+    // authentication before it is skipped, so the user authenticates once.
+    private var keysRequireUserAuthentication: Boolean = false
+    private var keyCheckJob: Job? = null
+
     override fun getNextScreen(): String {
+        if (keysRequireUserAuthentication) {
+            return generateComposableNavigationLink(
+                screen = PresentationScreens.PresentationLoading,
+                arguments = generateComposableArguments(
+                    mapOf("scopeId" to viewState.value.presentationScopeId)
+                )
+            )
+        }
         return generateComposableNavigationLink(
             screen = CommonScreens.Biometric,
             arguments = generateComposableArguments(
@@ -113,6 +128,8 @@ class PresentationRequestViewModel(
             copy(
                 presentationScopeId = requestUriConfig.presentationScopeId,
                 intentAction = intentAction,
+                hideClaimValues = (requestUriConfig.mode as? PresentationMode.DcApi)
+                    ?.userAuthenticated == false,
             )
         }
 
@@ -208,6 +225,10 @@ class PresentationRequestViewModel(
         interactor.updateRequestedDocuments(
             selectedCombination = viewState.value.requestDataUi.selectedCombination,
         )
+        keyCheckJob?.cancel()
+        keyCheckJob = viewModelScope.launch {
+            keysRequireUserAuthentication = interactor.disclosedKeysRequireUserAuthentication()
+        }
     }
 
     override fun cleanUp() {

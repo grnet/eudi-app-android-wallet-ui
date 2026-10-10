@@ -48,8 +48,11 @@ import eu.europa.ec.uilogic.component.content.ContentScreen
 import eu.europa.ec.uilogic.component.utils.OncePerViewModelEffect
 import eu.europa.ec.uilogic.component.wrap.WrapImage
 import eu.europa.ec.uilogic.extension.finish
+import eu.europa.ec.uilogic.extension.takePendingIntentAction
 import eu.europa.ec.uilogic.navigation.ModuleRoute
 import eu.europa.ec.uilogic.navigation.StartupScreens
+import eu.europa.ec.uilogic.navigation.helper.IntentType
+import eu.europa.ec.uilogic.navigation.helper.handleIntentAction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
@@ -76,8 +79,23 @@ fun SplashScreen(
                 }
 
                 is Effect.Navigation.SwitchScreen -> {
-                    navController.navigate(navigationEffect.route) {
-                        popUpTo(StartupScreens.Splash.screenRoute) { inclusive = true }
+                    // GRNET fork: a pending request from a browser opens straight away, with the
+                    // splash left below it, where the request screen takes its intent from.
+                    val dcApiRequest = navigationEffect.dcApiRequestArguments
+                        ?.let { arguments ->
+                            context.takePendingIntentAction(IntentType.DC_API)
+                                ?.let { action -> action to arguments }
+                        }
+                    if (dcApiRequest != null) {
+                        handleIntentAction(
+                            navController = navController,
+                            action = dcApiRequest.first,
+                            arguments = dcApiRequest.second,
+                        )
+                    } else {
+                        navController.navigate(navigationEffect.route) {
+                            popUpTo(StartupScreens.Splash.screenRoute) { inclusive = true }
+                        }
                     }
                 }
             }
