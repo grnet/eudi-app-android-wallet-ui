@@ -40,19 +40,24 @@ import eu.europa.ec.eudi.wallet.transfer.openId4vp.ClientIdScheme
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.Format
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.TransactionDataType
 import eu.europa.ec.eudi.wallet.trust.TrustPolicy
+import eu.europa.ec.resourceslogic.R
 import io.ktor.client.HttpClient
-import kotlinx.coroutines.runBlocking
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.get
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.runBlocking
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 
 internal class WalletCoreConfigImpl(
     private val registrationCheckProvider: RegistrationCheckProvider,
 ) : WalletCoreConfig, KoinComponent {
 
     private var _config: EudiWalletConfig? = null
+
+    // GRNET fork: the PID's name in Android's selector, as the wallet names the group of PIDs.
+    private val pidTitle: String
+        get() = get<Context>().getString(R.string.documents_screen_pid_group_title)
 
     // GRNET fork: shared by configureEtsiTrust and GrnetTrust, which rebuilds the same
     // pipeline to add GRNET's anchors.
@@ -131,6 +136,16 @@ internal class WalletCoreConfigImpl(
                         withSupportedProtocols(
                             DCAPIProtocol.ISO_MDOC,
                             DCAPIProtocol.OPENID4VP_V1_SIGNED,
+                        )
+                        // GRNET fork: Android's selector names the PID, not its format (the
+                        // issuer's names are "PID (SD-JWT VC)", "PID (MSO Mdoc)"). A request asks
+                        // for one format, so the selector shows one PID. In the wallet the PIDs
+                        // keep the issuer's names, grouped under this one.
+                        withCredentialTitles(
+                            mapOf(
+                                DocumentIdentifier.SdJwtPid.formatType to pidTitle,
+                                DocumentIdentifier.MdocPid.formatType to pidTitle,
+                            )
                         )
                     }
 

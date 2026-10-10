@@ -27,6 +27,7 @@ import eu.europa.ec.dashboardfeature.BuildConfig
 import eu.europa.ec.dashboardfeature.ui.dashboard.DashboardScreen
 import eu.europa.ec.dashboardfeature.ui.document_sign.DocumentSignScreen
 import eu.europa.ec.dashboardfeature.ui.documents.detail.DocumentDetailsScreen
+import eu.europa.ec.dashboardfeature.ui.documents.group.DocumentGroupScreen
 import eu.europa.ec.dashboardfeature.ui.settings.SettingsScreen
 import eu.europa.ec.dashboardfeature.ui.transactions.data_deletion.DataDeletionRequestScreen
 import eu.europa.ec.dashboardfeature.ui.transactions.detail.TransactionDetailsScreen
@@ -101,6 +102,27 @@ fun NavGraphBuilder.featureDashboardGraph(navController: NavController) {
                     parameters = {
                         parametersOf(
                             it.arguments?.getString("documentId").orEmpty(),
+                        )
+                    }
+                )
+            )
+        }
+
+        // GRNET fork: a person's PIDs, grouped in Documents.
+        composable(
+            route = DashboardScreens.DocumentGroup.screenRoute,
+            arguments = listOf(
+                navArgument("documentIds") {
+                    type = NavType.StringType
+                },
+            )
+        ) {
+            DocumentGroupScreen(
+                navController,
+                koinViewModel(
+                    parameters = {
+                        parametersOf(
+                            it.arguments?.getString("documentIds").orEmpty(),
                         )
                     }
                 )

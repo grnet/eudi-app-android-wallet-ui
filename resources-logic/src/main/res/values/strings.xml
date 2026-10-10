@@ -357,6 +357,10 @@
     <string name="documents_screen_title">Documents</string>
     <string name="documents_screen_search_label">@string/generic_search</string>
     <string name="documents_screen_search_no_results">No documents match your search. Try changing your search query or filters.</string>
+    <!-- GRNET fork: the name of a person's PIDs, grouped in Documents, and of a PID in Android's selector. -->
+    <string name="documents_screen_pid_group_title">Person Identification Data</string>
+    <string name="documents_screen_pid_group_supporting_text">%1$d documents</string>
+    <string name="documents_screen_pid_group_subtitle">The same data, in each of the formats your wallet holds it in.</string>
     <string name="documents_screen_add_document_title">Add document</string>
     <string name="documents_screen_add_document_description">Add documents to your wallet by choosing from a list or by scanning a provided QR code.</string>
     <string name="documents_screen_add_document_fab">Add document</string>

@@ -458,7 +458,9 @@ private fun DocumentCategory(
                     modifier = Modifier.fillMaxWidth(),
                     item = documentItem.uiData,
                     onItemClick = {
-                        val onItemClickEvent = if (
+                        val onItemClickEvent = if (documentItem.groupMemberIds.isNotEmpty()) {
+                            Event.GoToDocumentGroup(documentItem.groupMemberIds)
+                        } else if (
                             documentItem.documentIssuanceState == DocumentIssuanceStateUi.Pending
                             || documentItem.documentIssuanceState == DocumentIssuanceStateUi.Failed
                         ) {
