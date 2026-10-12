@@ -34,10 +34,16 @@ sealed interface StickyBottomType {
         val config: ButtonConfig
     ) : StickyBottomType
 
+    /**
+     * @property secondaryButtonFitsContent GRNET fork: the secondary button takes only the width
+     * its content needs and the primary button the rest, instead of half each; for a primary
+     * label that needs the room, such as a payment's amount.
+     */
     data class TwoButtons(
         val primaryButtonConfig: ButtonConfig,
         val secondaryButtonConfig: ButtonConfig,
         val secondaryButtonContent: @Composable RowScope.() -> Unit,
+        val secondaryButtonFitsContent: Boolean = false,
     ) : StickyBottomType
 
     data object Generic : StickyBottomType
@@ -102,7 +108,11 @@ fun WrapStickyBottomContent(
                     horizontalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp)
                 ) {
                     WrapButton(
-                        modifier = Modifier.weight(1f),
+                        modifier = if (stickyBottomType.secondaryButtonFitsContent) {
+                            Modifier
+                        } else {
+                            Modifier.weight(1f)
+                        },
                         buttonConfig = stickyBottomType.secondaryButtonConfig
                     ) {
                         stickyBottomType.secondaryButtonContent(this)

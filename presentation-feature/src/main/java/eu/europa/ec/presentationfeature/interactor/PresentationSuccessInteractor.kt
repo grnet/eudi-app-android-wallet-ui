@@ -23,11 +23,13 @@ import eu.europa.ec.businesslogic.provider.UuidProvider
 import eu.europa.ec.commonfeature.extension.toExpandableListItems
 import eu.europa.ec.commonfeature.interactor.ScopedPresentationInteractor
 import eu.europa.ec.commonfeature.interactor.ScopedPresentationInteractorDelegate
+import eu.europa.ec.commonfeature.ui.request.transformer.formatPaymentAmount
 import eu.europa.ec.commonfeature.util.transformPathsToDomainClaims
 import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
 import eu.europa.ec.corelogic.controller.WalletCorePresentationController
 import eu.europa.ec.corelogic.extension.toClaimPaths
 import eu.europa.ec.corelogic.model.ClaimItemId
+import eu.europa.ec.corelogic.model.PresentationTransactionDataDomain
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
@@ -36,6 +38,7 @@ import eu.europa.ec.uilogic.component.ListItemDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
 import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
+import eu.europa.ec.uilogic.component.PaymentCardUi
 import eu.europa.ec.uilogic.component.RelyingPartyDataUi
 import eu.europa.ec.uilogic.component.content.ContentHeaderConfig
 import eu.europa.ec.uilogic.component.wrap.ExpandableListItemUi
@@ -89,6 +92,12 @@ class PresentationSuccessInteractorImpl(
 
             val documentsUi = mutableListOf<ExpandableListItemUi.NestedListItem>()
 
+            // GRNET fork: the TS12 card payment the user approved, if that is what this was.
+            val payment = walletCorePresentationController.disclosedTransactionData
+                .filterIsInstance<PresentationTransactionDataDomain.Payment>()
+                .distinct()
+                .singleOrNull()
+
             val verifierName = walletCorePresentationController.verifierName
 
             val isVerified = walletCorePresentationController.verifierIsFullyVerified == true
@@ -122,13 +131,22 @@ class PresentationSuccessInteractorImpl(
                     }
 
                     if (disclosedClaimsUi.isNotEmpty()) {
+                        val itemId = ClaimItemId.DocumentHeader(
+                            docId = documentId,
+                            queryId = selection.queryId,
+                        ).encode()
+
+                        // GRNET fork: a payment card by its own name only. Its art and last
+                        // four digits are display meta-data, never presented to the verifier
+                        // (rb-sca-card-dpc §2.9), so they stay out of what was shared.
+                        val paymentCard = PaymentCardUi.from(document)
+
                         val disclosedDocumentUi = ExpandableListItemUi.NestedListItem(
                             header = ListItemDataUi(
-                                itemId = ClaimItemId.DocumentHeader(
-                                    docId = documentId,
-                                    queryId = selection.queryId,
-                                ).encode(),
-                                mainContentData = ListItemMainContentDataUi.Text(text = document.name),
+                                itemId = itemId,
+                                mainContentData = ListItemMainContentDataUi.Text(
+                                    text = paymentCard?.name ?: document.name
+                                ),
                                 supportingContentData = ListItemSupportingContentDataUi.Text(
                                     text = resourceProvider.getString(R.string.document_success_collapsed_supporting_text),
                                 ),
@@ -146,10 +164,22 @@ class PresentationSuccessInteractorImpl(
                 }
             }
 
-            val headerConfigDescription = if (documentsUi.isEmpty()) {
-                resourceProvider.getString(R.string.document_success_header_description_when_error)
-            } else {
-                resourceProvider.getString(R.string.document_success_header_description)
+            val paymentAmount = payment?.let {
+                formatPaymentAmount(amount = it.amount, currency = it.currency)
+            }
+
+            val headerConfigDescription = when {
+                documentsUi.isEmpty() -> resourceProvider.getString(R.string.document_success_header_description_when_error)
+
+                // GRNET fork: what the user approved. The wallet does not learn whether the
+                // payment then went through, so it says "approved", never "paid".
+                payment != null -> resourceProvider.getString(
+                    R.string.document_success_header_description_payment,
+                    paymentAmount.orEmpty(),
+                    payment.payeeName,
+                )
+
+                else -> resourceProvider.getString(R.string.document_success_header_description)
             }
             val headerConfig = ContentHeaderConfig(
                 description = headerConfigDescription,
@@ -161,14 +191,25 @@ class PresentationSuccessInteractorImpl(
                     ),
                     uniqueId = null,
                     description = null,
-                )
+                    // GRNET fork: who the data went to, in bold after a payment.
+                    emphasizeName = payment != null && documentsUi.isNotEmpty(),
+                ),
+                // GRNET fork: what was approved and to whom, in bold.
+                descriptionEmphasis = if (payment != null && documentsUi.isNotEmpty()) {
+                    listOfNotNull(paymentAmount, payment.payeeName)
+                } else {
+                    emptyList()
+                },
             )
 
             emit(
                 PresentationSuccessInteractorGetUiItemsPartialState.Success(
                     documentsUi = documentsUi,
                     headerConfig = headerConfig,
-                    bannerText = resourceProvider.getString(R.string.document_success_banner_text),
+                    bannerText = resourceProvider.getString(
+                        if (payment != null) R.string.document_success_banner_text_payment
+                        else R.string.document_success_banner_text
+                    ),
                 )
             )
         }.safeAsync {

@@ -25,6 +25,8 @@ import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import eu.europa.ec.authenticationlogic.model.BiometricCrypto
+import eu.europa.ec.authenticationlogic.model.DeviceAuthenticationMethod
+import eu.europa.ec.authenticationlogic.model.DeviceAuthenticationPrompt
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import kotlinx.coroutines.CancellationException
@@ -32,11 +34,15 @@ import kotlinx.coroutines.launch
 
 interface DeviceAuthenticationController {
     fun deviceSupportsBiometrics(crypto: BiometricCrypto): BiometricsAvailability
+    /**
+     * @param prompt GRNET fork: what the prompt says, or `null` for its generic text.
+     */
     fun authenticate(
         context: Context,
         biometryCrypto: BiometricCrypto,
         notifyOnAuthenticationFailure: Boolean,
-        result: DeviceAuthenticationResult
+        result: DeviceAuthenticationResult,
+        prompt: DeviceAuthenticationPrompt? = null,
     )
 
     fun launchBiometricSystemScreen(crypto: BiometricCrypto)
@@ -57,7 +63,8 @@ class DeviceAuthenticationControllerImpl(
         context: Context,
         biometryCrypto: BiometricCrypto,
         notifyOnAuthenticationFailure: Boolean,
-        result: DeviceAuthenticationResult
+        result: DeviceAuthenticationResult,
+        prompt: DeviceAuthenticationPrompt?,
     ) {
         val activity = context as? FragmentActivity
         if (activity == null) {
@@ -71,8 +78,16 @@ class DeviceAuthenticationControllerImpl(
             val data = try {
                 val authenticators = getAllowedAuthenticators(biometryCrypto)
                 val promptInfo = BiometricPrompt.PromptInfo.Builder()
-                    .setTitle(resourceProvider.getString(R.string.biometric_prompt_title))
-                    .setSubtitle(resourceProvider.getString(R.string.biometric_prompt_subtitle))
+                    .setTitle(
+                        prompt?.title ?: resourceProvider.getString(R.string.biometric_prompt_title)
+                    )
+                    .setSubtitle(
+                        if (prompt != null) {
+                            prompt.subtitle
+                        } else {
+                            resourceProvider.getString(R.string.biometric_prompt_subtitle)
+                        }
+                    )
                     .setAllowedAuthenticators(authenticators)
                     .apply {
                         if (authenticators and DEVICE_CREDENTIAL == 0) {
@@ -97,6 +112,7 @@ class DeviceAuthenticationControllerImpl(
 
             resultDelivered = true
             if (data.authenticationResult != null) {
+                result.onAuthenticated(DeviceAuthenticationMethod.of(data.authenticationResult))
                 result.onAuthenticationSuccess()
             } else if (data.hasError) {
                 result.onAuthenticationError()
@@ -124,8 +140,13 @@ class DeviceAuthenticationControllerImpl(
     }
 }
 
+/**
+ * @property onAuthenticated GRNET fork: how the user authenticated, called just before
+ * [onAuthenticationSuccess].
+ */
 data class DeviceAuthenticationResult(
     val onAuthenticationSuccess: suspend () -> Unit = {},
     val onAuthenticationError: () -> Unit = {},
     val onAuthenticationFailure: () -> Unit = {},
+    val onAuthenticated: (DeviceAuthenticationMethod) -> Unit = {},
 )

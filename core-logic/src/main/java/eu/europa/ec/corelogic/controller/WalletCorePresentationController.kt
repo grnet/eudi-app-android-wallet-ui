@@ -30,11 +30,13 @@ import eu.europa.ec.corelogic.model.AuthenticationData
 import eu.europa.ec.corelogic.model.PresentationCombinationDomain
 import eu.europa.ec.corelogic.model.PresentationMatchDomain
 import eu.europa.ec.corelogic.model.PresentationSelectionDomain
+import eu.europa.ec.corelogic.model.PresentationTransactionDataDomain
 import eu.europa.ec.corelogic.model.RegistrationStatusDomain
 import eu.europa.ec.corelogic.model.RelyingPartyDomain
 import eu.europa.ec.corelogic.model.identityKey
 import eu.europa.ec.corelogic.model.requesterUniqueIdOrNull
 import eu.europa.ec.corelogic.model.resolveRequesterName
+import eu.europa.ec.corelogic.transactiondata.ScaKeyAuthentication
 import eu.europa.ec.corelogic.util.EudiWalletListenerWrapper
 import eu.europa.ec.eudi.iso18013.transfer.TransferEvent
 import eu.europa.ec.eudi.iso18013.transfer.response.RequestProcessor
@@ -44,6 +46,7 @@ import eu.europa.ec.eudi.wallet.dcapi.process.openid4vp.ProcessedOpenId4VpDCAPIR
 import eu.europa.ec.eudi.wallet.document.DocumentExtensions.getDefaultKeyUnlockData
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.dcql.ProcessedDcqlRequest
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
+import java.net.URI
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -66,7 +69,6 @@ import kotlinx.coroutines.runBlocking
 import org.multipaz.presentment.CredentialPresentmentSetOptionMemberMatch
 import org.multipaz.presentment.CredentialSelection
 import org.multipaz.securearea.KeyUnlockData
-import java.net.URI
 
 sealed class PresentationControllerConfig(val initiatorRoute: String) {
     data class OpenId4VP(val uri: String, val initiator: String) :
@@ -154,6 +156,13 @@ interface WalletCorePresentationController {
     val disclosedDocuments: List<PresentationSelectionDomain>?
 
     /**
+     * GRNET fork: the transaction data bound to [disclosedDocuments], such as the TS12 card
+     * payment the user approved, so that it can be shown once the response is sent.
+     * */
+    val disclosedTransactionData: List<PresentationTransactionDataDomain>
+        get() = emptyList()
+
+    /**
      * Verifier name so it can be retrieve across screens
      * */
     val verifierName: String?
@@ -215,6 +224,13 @@ interface WalletCorePresentationController {
     fun checkForKeyUnlock(): Flow<CheckKeyUnlockPartialState>
 
     /**
+     * GRNET fork: whether a key of [disclosedDocuments] requires user authentication to sign, so
+     * that the presentation asks for it, bound to the key, and no other authentication is needed
+     * before it.
+     */
+    suspend fun disclosedKeysRequireUserAuthentication(): Boolean
+
+    /**
      * Build the Wallet Core [CredentialSelection] from [disclosedDocuments] and
      * dispatch it to the Wallet Core SDK.
      */
@@ -263,6 +279,14 @@ class WalletCorePresentationControllerImpl(
     private lateinit var _config: PresentationControllerConfig
 
     override var disclosedDocuments: List<PresentationSelectionDomain>? = null
+
+    override val disclosedTransactionData: List<PresentationTransactionDataDomain>
+        get() = disclosedDocuments.orEmpty()
+            .mapNotNull { selection ->
+                matchByKey[Triple(selection.documentId, selection.credentialId, selection.queryId)]
+            }
+            .flatMap { match -> PresentationMatchDomain.from(match).transactionData }
+            .distinct()
 
     // The Wallet Core SDK request, held from the onRequestReceived callback until send.
     private var processedRequest: RequestProcessor.ProcessedRequest.Success? = null
@@ -391,15 +415,21 @@ class WalletCorePresentationControllerImpl(
 
                 // fresh per send attempt
                 keyUnlockDataByCredentialId.clear()
+                ScaKeyAuthentication.clear()
 
                 val authenticationData = mutableListOf<AuthenticationData>()
 
-                if (eudiWallet.config.userAuthenticationRequired) {
+                // GRNET fork: also when only some keys require it, such as a payment card's
+                // (WalletCoreConfig.userAuthenticatedKeyTypes); only those are prompted for.
+                val selectionsRequiringAuth = selections.filter { keyRequiresUserAuthentication(it) }
+
+                if (selectionsRequiringAuth.isNotEmpty()) {
 
                     // one prompt per credential, not per selection: a multi-query request can
                     // disclose the same credential under several queryIds and its key unlocks
                     // once, so distinctBy avoids N identical biometric prompts
-                    val distinctCredentialSelections = selections.distinctBy { it.credentialId }
+                    val distinctCredentialSelections =
+                        selectionsRequiringAuth.distinctBy { it.credentialId }
 
                     for (selection in distinctCredentialSelections) {
                         val kud =
@@ -413,7 +443,9 @@ class WalletCorePresentationControllerImpl(
                                     if (kud != null) {
                                         keyUnlockDataByCredentialId[selection.credentialId] = kud
                                     }
-                                }
+                                },
+                                // GRNET fork: for a payment's `amr` (ScaPaymentTransactionType).
+                                onAuthenticated = { method -> ScaKeyAuthentication.record(method) },
                             )
                         )
                     }
@@ -435,6 +467,23 @@ class WalletCorePresentationControllerImpl(
                 error = it.localizedMessage ?: genericErrorMessage
             )
         }
+    }
+
+    override suspend fun disclosedKeysRequireUserAuthentication(): Boolean =
+        disclosedDocuments.orEmpty().any { keyRequiresUserAuthentication(it) }
+
+    /**
+     * GRNET fork: whether the key [selection] signs with requires user authentication: every key
+     * when the wallet is configured so, else as the key was created.
+     */
+    private suspend fun keyRequiresUserAuthentication(
+        selection: PresentationSelectionDomain,
+    ): Boolean {
+        if (eudiWallet.config.userAuthenticationRequired) return true
+        return runCatching {
+            val kud = eudiWallet.getDefaultKeyUnlockData(documentId = selection.documentId)
+            kud?.secureArea?.getKeyInfo(kud.alias)?.isUserAuthenticationRequired == true
+        }.getOrDefault(false)
     }
 
     override suspend fun sendRequestedDocuments(): SendRequestedDocumentsPartialState {

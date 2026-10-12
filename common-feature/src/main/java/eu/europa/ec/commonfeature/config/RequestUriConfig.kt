@@ -49,10 +49,16 @@ sealed interface PresentationMode {
             get() = "ble_presentation_scope_id"
     }
 
+    /**
+     * @property userAuthenticated GRNET fork: whether the user unlocked the wallet before the
+     * request was shown. A request from a browser is shown without it, and the user
+     * authenticates once, to approve it; until then the requested values are hidden.
+     */
     @Serializable
     @SerialName("DcApi")
     data class DcApi(
         val initiatorRoute: String,
+        val userAuthenticated: Boolean = true,
     ) : PresentationMode {
 
         override val scopeId: String

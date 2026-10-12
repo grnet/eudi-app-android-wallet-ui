@@ -32,6 +32,7 @@ import eu.europa.ec.uilogic.component.ListItemDataUi
 import eu.europa.ec.uilogic.component.ListItemMainContentDataUi
 import eu.europa.ec.uilogic.component.ListItemSupportingContentDataUi
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
+import eu.europa.ec.uilogic.component.PaymentCardUi
 import eu.europa.ec.uilogic.component.RelyingPartyDataUi
 import eu.europa.ec.uilogic.component.content.ContentHeaderConfig
 import eu.europa.ec.uilogic.component.wrap.ExpandableListItemUi
@@ -44,6 +45,7 @@ sealed class DocumentIssuanceSuccessInteractorGetUiItemsPartialState {
         val documentsUi: List<ExpandableListItemUi.NestedListItem>,
         val headerConfig: ContentHeaderConfig,
         val bannerText: String,
+        val paymentCards: Map<String, PaymentCardUi> = emptyMap(),
     ) : DocumentIssuanceSuccessInteractorGetUiItemsPartialState()
 
     data class Failed(
@@ -68,6 +70,7 @@ class DocumentIssuanceSuccessInteractorImpl(
         return flow {
 
             val documentsUi = mutableListOf<ExpandableListItemUi.NestedListItem>()
+            val paymentCards = mutableMapOf<String, PaymentCardUi>()
 
             var issuerName =
                 resourceProvider.getString(R.string.issuance_success_header_issuer_default_name)
@@ -81,14 +84,27 @@ class DocumentIssuanceSuccessInteractorImpl(
                     val document =
                         walletCoreDocumentsController.getDocumentById(documentId = documentId) as IssuedDocument
 
-                    val localizedIssuerMetadata = document.localizedIssuerMetadata(userLocale)
+                    // GRNET fork: a payment card is shown as the card, by its own name.
+                    val paymentCard = PaymentCardUi.from(document)
+                    paymentCard?.let { paymentCards[documentId] = it }
 
-                    localizedIssuerMetadata?.name?.let { safeIssuerName ->
-                        issuerName = safeIssuerName
-                    }
+                    // GRNET fork: a payment card's issuer is its bank, when the card names one
+                    // (rb-sca-card-dpc §2.9), with the bank's logo, or none, never the issuing
+                    // service's.
+                    val cardIssuerName = paymentCard?.issuerName
+                    if (cardIssuerName != null) {
+                        issuerName = cardIssuerName
+                        issuerLogo = paymentCard?.issuerLogo
+                    } else {
+                        val localizedIssuerMetadata = document.localizedIssuerMetadata(userLocale)
 
-                    localizedIssuerMetadata?.logo?.uri?.let { safeIssuerLogo ->
-                        issuerLogo = safeIssuerLogo
+                        localizedIssuerMetadata?.name?.let { safeIssuerName ->
+                            issuerName = safeIssuerName
+                        }
+
+                        localizedIssuerMetadata?.logo?.uri?.let { safeIssuerLogo ->
+                            issuerLogo = safeIssuerLogo
+                        }
                     }
 
                     val claimsPaths = document.data.claims.flatMap { claim ->
@@ -112,7 +128,7 @@ class DocumentIssuanceSuccessInteractorImpl(
                     val documentUi = ExpandableListItemUi.NestedListItem(
                         header = ListItemDataUi(
                             itemId = documentId,
-                            mainContentData = ListItemMainContentDataUi.Text(text = document.name),
+                            mainContentData = ListItemMainContentDataUi.Text(text = paymentCard?.name ?: document.name),
                             supportingContentData = ListItemSupportingContentDataUi.Text(
                                 text = resourceProvider.getString(R.string.document_success_collapsed_supporting_text),
                             ),
@@ -134,22 +150,40 @@ class DocumentIssuanceSuccessInteractorImpl(
             } else {
                 resourceProvider.getString(R.string.issuance_success_header_description)
             }
+            // GRNET fork: when what was added is payment cards only, and none names its issuer,
+            // the cards themselves, which carry their bank's and network's branding, stand in for
+            // the issuer.
+            val onlyPaymentCards = documentsUi.isNotEmpty() && paymentCards.size == documentsUi.size
+            val hideIssuer = onlyPaymentCards && paymentCards.values.none { it.issuerName != null }
+
             val headerConfig = ContentHeaderConfig(
                 description = headerConfigDescription,
-                relyingPartyData = RelyingPartyDataUi(
-                    logo = issuerLogo,
-                    isVerified = issuerIsTrusted,
-                    name = issuerName,
-                    uniqueId = null,
-                    description = null,
-                )
+                relyingPartyData = if (hideIssuer) {
+                    null
+                } else {
+                    RelyingPartyDataUi(
+                        logo = issuerLogo,
+                        isVerified = issuerIsTrusted,
+                        name = issuerName,
+                        uniqueId = null,
+                        description = null,
+                    )
+                }
             )
 
             emit(
                 DocumentIssuanceSuccessInteractorGetUiItemsPartialState.Success(
                     documentsUi = documentsUi,
                     headerConfig = headerConfig,
-                    bannerText = resourceProvider.getString(R.string.issuance_success_banner_text),
+                    bannerText = resourceProvider.getString(
+                        // GRNET fork: "Card added", when what was added is payment cards only.
+                        if (onlyPaymentCards) {
+                            R.string.issuance_success_banner_text_payment_card
+                        } else {
+                            R.string.issuance_success_banner_text
+                        }
+                    ),
+                    paymentCards = paymentCards,
                 )
             )
         }.safeAsync {

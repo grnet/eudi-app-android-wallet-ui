@@ -21,14 +21,19 @@ import eu.europa.ec.authenticationlogic.controller.authentication.BiometricsAvai
 import eu.europa.ec.authenticationlogic.controller.authentication.DeviceAuthenticationController
 import eu.europa.ec.authenticationlogic.controller.authentication.DeviceAuthenticationResult
 import eu.europa.ec.authenticationlogic.model.BiometricCrypto
+import eu.europa.ec.authenticationlogic.model.DeviceAuthenticationPrompt
 
 interface DeviceAuthenticationInteractor {
     fun getBiometricsAvailability(crypto: BiometricCrypto): BiometricsAvailability
+    /**
+     * @param prompt GRNET fork: what the prompt says, or `null` for its generic text.
+     */
     fun authenticateWithBiometrics(
         context: Context,
         crypto: BiometricCrypto,
         notifyOnAuthenticationFailure: Boolean,
-        resultHandler: DeviceAuthenticationResult
+        resultHandler: DeviceAuthenticationResult,
+        prompt: DeviceAuthenticationPrompt? = null,
     )
 
     fun launchBiometricSystemScreen(crypto: BiometricCrypto)
@@ -50,13 +55,15 @@ class DeviceAuthenticationInteractorImpl(
         context: Context,
         crypto: BiometricCrypto,
         notifyOnAuthenticationFailure: Boolean,
-        resultHandler: DeviceAuthenticationResult
+        resultHandler: DeviceAuthenticationResult,
+        prompt: DeviceAuthenticationPrompt?,
     ) {
         deviceAuthenticationController.authenticate(
             context,
             crypto,
             notifyOnAuthenticationFailure,
-            resultHandler
+            resultHandler,
+            prompt,
         )
     }
 }

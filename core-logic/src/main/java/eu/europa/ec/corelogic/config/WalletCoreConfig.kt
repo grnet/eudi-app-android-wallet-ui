@@ -50,6 +50,15 @@ interface WalletCoreConfig {
     val isRegistrationCheckEnabled: Boolean
 
     /**
+     * GRNET fork: the types (`vct` or `docType`) of the credentials whose keys require user
+     * authentication at every use, by biometrics or the device's screen lock, such as payment
+     * cards: their key signs a payment, and the authentication is the payment's strong customer
+     * authentication. Other credentials follow [config]. Applies to keys created from now on.
+     */
+    val userAuthenticatedKeyTypes: Set<String>
+        get() = emptySet()
+
+    /**
      * A list of configurations for Verifiable Credentials Issuance (VCI) using OpenID4VCI.
      *
      * Each element in the list is an [VciConfig] object, which contains:

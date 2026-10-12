@@ -23,6 +23,7 @@ import eu.europa.ec.businesslogic.extension.toUri
 import eu.europa.ec.uilogic.component.AppIconAndTextDataUi
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.ListItemTrailingContentDataUi
+import eu.europa.ec.uilogic.component.PaymentCardUi
 import eu.europa.ec.uilogic.component.content.ContentHeaderConfig
 import eu.europa.ec.uilogic.component.wrap.ExpandableListItemUi
 import eu.europa.ec.uilogic.config.ConfigNavigation
@@ -42,6 +43,8 @@ data class State(
     val bannerText: String = "",
 
     val items: List<ExpandableListItemUi.NestedListItem> = emptyList(),
+    /** GRNET fork: the payment cards among [items], by their header's item id. */
+    val paymentCards: Map<String, PaymentCardUi> = emptyMap(),
 ) : ViewState
 
 sealed class Event : ViewEvent {

@@ -156,6 +156,9 @@
     <string name="document_success_banner_text">Authentication successful</string>
     <string name="document_success_header_description">You successfully shared the following information with</string>
     <string name="document_success_header_description_when_error">You successfully shared the information with</string>
+    <!-- GRNET fork: a TS12 card payment the user approved -->
+    <string name="document_success_banner_text_payment">Payment approved</string>
+    <string name="document_success_header_description_payment">You approved %1$s to %2$s and shared the following information with</string>
     <string name="document_success_relying_party_default_name">@string/generic_default_relying_party_name</string>
     <string name="document_success_collapsed_supporting_text">@string/generic_view_details</string>
     <string name="document_success_sticky_button_text">@string/generic_close</string>
@@ -249,6 +252,17 @@
     <string name="request_transaction_amount">Amount</string>
     <string name="request_transaction_date_time">Date and time</string>
     <string name="request_transaction_id">Transaction ID</string>
+    <string name="request_transaction_payment_to">to %1$s</string>
+    <string name="request_sticky_button_text_payment">Pay %1$s</string>
+    <string name="request_screen_title_payment">Confirm payment</string>
+    <string name="request_relying_party_requested_by">Requested by</string>
+    <!-- GRNET fork: payment cards, WE BUILD SCA-Card (DPC) -->
+    <string name="payment_card_expiry_date">Expiry date</string>
+    <string name="payment_card_content_description">%1$s, card ending in %2$s</string>
+    <!-- GRNET fork: the JWT times of an SD-JWT VC -->
+    <string name="document_details_claim_iat">Issued</string>
+    <string name="document_details_claim_exp">Expires</string>
+    <string name="document_details_claim_nbf">Valid from</string>
     <string name="request_combination_option_title">Option %1$d of %2$d</string>
     <string name="request_no_data">The requested document is not available in your EUDI Wallet.
         Please contact the authorised issuer for further information.</string>
@@ -536,6 +550,8 @@
 
     <!-- region Issuance Success Screen -->
     <string name="issuance_success_banner_text">Document issued</string>
+    <!-- GRNET fork: when the documents issued are all payment cards -->
+    <string name="issuance_success_banner_text_payment_card">Card added</string>
     <string name="issuance_success_header_description">You have successfully added the following to your wallet</string>
     <string name="issuance_success_header_description_when_error">You have successfully added the document(s) to your wallet</string>
     <string name="issuance_success_header_issuer_default_name">@string/generic_default_issuer_name</string>

@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.MaterialTheme
@@ -163,6 +164,13 @@ sealed class ListItemLeadingContentDataUi {
         override val size: Int? = null,
         val radioButtonData: RadioButtonDataUi,
     ) : ListItemLeadingContentDataUi()
+
+    /** GRNET fork: a payment card's art, at a card's proportions, instead of an icon. */
+    data class PaymentCard(
+        val card: PaymentCardUi,
+    ) : ListItemLeadingContentDataUi() {
+        override val size: Int? = null
+    }
 }
 
 /**
@@ -340,6 +348,12 @@ fun ListItem(
                     is ListItemLeadingContentDataUi.RadioButton -> WrapRadioButton(
                         modifier = leadingContentModifier,
                         radioButtonData = safeLeadingContentData.radioButtonData,
+                    )
+
+                    is ListItemLeadingContentDataUi.PaymentCard -> PaymentCardFace(
+                        modifier = leadingContentModifier.width(PAYMENT_CARD_THUMBNAIL_WIDTH.dp),
+                        card = safeLeadingContentData.card,
+                        showDetails = false,
                     )
                 }
             }
