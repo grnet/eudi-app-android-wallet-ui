@@ -89,6 +89,9 @@ sealed class Event : ViewEvent {
     data class TryIssuingDeferredDocuments(val deferredDocs: Map<DocumentId, FormatType>) : Event()
     data object Pop : Event()
     data class GoToDocumentDetails(val docId: DocumentId) : Event()
+
+    // GRNET fork: the row of a person's PIDs, see PidGroups.kt.
+    data class GoToDocumentGroup(val docIds: List<DocumentId>) : Event()
     data class OnSearchQueryChanged(val query: String) : Event()
     data class OnFilterSelectionChanged(val filterId: String, val groupId: String) : Event()
     data class OnFilterGroupExpansionChanged(val groupId: String) : Event()
@@ -201,6 +204,10 @@ class DocumentsViewModel(
             }
 
             is Event.Pop -> setEffect { Effect.Navigation.Pop }
+
+            is Event.GoToDocumentGroup -> {
+                goToDocumentGroup(event.docIds)
+            }
 
             is Event.GoToDocumentDetails -> {
                 goToDocumentDetails(event.docId)
@@ -540,6 +547,19 @@ class DocumentsViewModel(
                     }
                 }
             }
+        }
+    }
+
+    private fun goToDocumentGroup(docIds: List<DocumentId>) {
+        setEffect {
+            Effect.Navigation.SwitchScreen(
+                screenRoute = generateComposableNavigationLink(
+                    screen = DashboardScreens.DocumentGroup,
+                    arguments = generateComposableArguments(
+                        mapOf("documentIds" to docIds.joinToString(","))
+                    )
+                )
+            )
         }
     }
 

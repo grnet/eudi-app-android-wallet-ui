@@ -60,6 +60,12 @@ sealed class DashboardScreens {
         parameters = "?documentId={documentId}"
     )
 
+    // GRNET fork: a person's PIDs, grouped in Documents; documentIds is comma-separated.
+    data object DocumentGroup : Screen(
+        name = "DOCUMENT_GROUP",
+        parameters = "?documentIds={documentIds}"
+    )
+
     data object DataDeletionRequest : Screen(
         name = "DATA_DELETION_REQUEST",
         parameters = "?transactionId={transactionId}"
