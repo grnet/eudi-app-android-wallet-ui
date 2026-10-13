@@ -268,13 +268,16 @@ private fun Content(
             .padding(paddingValues),
         verticalArrangement = Arrangement.Top
     ) {
-        // Screen Header.
-        ContentTitle(
-            modifier = Modifier.fillMaxWidth(),
-            title = stringResource(
-                if (isPayment) R.string.request_screen_title_payment else R.string.request_screen_title
-            ),
-        )
+        // Screen Header. GRNET fork: not until the request is known, so that a payment does not
+        // first show as a data sharing request while it loads.
+        if (state.requestDataUi !is RequestDataUi.Initial) {
+            ContentTitle(
+                modifier = Modifier.fillMaxWidth(),
+                title = stringResource(
+                    if (isPayment) R.string.request_screen_title_payment else R.string.request_screen_title
+                ),
+            )
+        }
 
         // GRNET fork: for a payment, who asks is shown in the payment's summary instead, under
         // the payee, labelled "Requested by" so that it is told apart from the payee.
