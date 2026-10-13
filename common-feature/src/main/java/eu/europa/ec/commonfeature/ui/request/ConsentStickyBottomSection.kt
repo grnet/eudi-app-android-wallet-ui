@@ -26,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import eu.europa.ec.commonfeature.ui.request.model.RegistrationWarningUi
 import eu.europa.ec.commonfeature.ui.request.model.RegistrationWarningVariantUi
@@ -64,7 +65,8 @@ data class ConsentWarningSection(
  *
  * [showPrimaryButtonIcon] (GRNET fork) leaves the confirm button's check mark out, and
  * [primaryButtonTakesRoom] (GRNET fork) gives the confirm button all the width Cancel does not
- * need, for a label that needs the room, such as a payment's amount.
+ * need, for a label that needs the room, such as a payment's amount. [confirmationHint] (GRNET
+ * fork), when given, says above the buttons how the user will confirm.
  */
 @Composable
 fun ConsentStickyBottomSection(
@@ -79,6 +81,7 @@ fun ConsentStickyBottomSection(
     onCancelButtonClick: () -> Unit,
     showPrimaryButtonIcon: Boolean = true,
     primaryButtonTakesRoom: Boolean = false,
+    confirmationHint: String? = null,
 ) {
     Column(
         modifier = modifier,
@@ -109,6 +112,18 @@ fun ConsentStickyBottomSection(
                     acknowledgeText = warningSection.acknowledgeText,
                     isAcknowledged = safeRegistrationWarning.riskAccepted,
                     onAcknowledgeChange = warningSection.onAcknowledgeChange,
+                )
+            }
+
+            confirmationHint?.let { hint ->
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = SPACING_MEDIUM.dp),
+                    text = hint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
             }
 

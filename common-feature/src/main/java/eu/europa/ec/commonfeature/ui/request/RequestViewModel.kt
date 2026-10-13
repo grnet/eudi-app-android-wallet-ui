@@ -56,6 +56,10 @@ data class State(
     // GRNET fork: the requested values are hidden until the user authenticates, when the
     // request was shown without unlocking the wallet first.
     val hideClaimValues: Boolean = false,
+
+    // GRNET fork: the keys of the selected credentials require the user (a payment card's), so
+    // the device's own prompt, fingerprint or screen lock, is what approves the request.
+    val keysRequireUserAuthentication: Boolean = false,
 ) : ViewState {
     val allowShare: Boolean
         get() {

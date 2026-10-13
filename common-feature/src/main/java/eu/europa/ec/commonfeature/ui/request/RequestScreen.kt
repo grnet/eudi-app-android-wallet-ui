@@ -74,6 +74,7 @@ import eu.europa.ec.uilogic.component.RelyingPartyLayout
 import eu.europa.ec.uilogic.component.SectionTitle
 import eu.europa.ec.uilogic.component.content.ContentScreen
 import eu.europa.ec.uilogic.component.content.ContentTitle
+import eu.europa.ec.uilogic.component.content.LocalShownInSheet
 import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
 import eu.europa.ec.uilogic.component.preview.LargeTextPreviews
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
@@ -122,7 +123,12 @@ fun RequestScreen(
     )
 
     ContentScreen(
-        navigatableAction = ScreenNavigateAction.BACKABLE,
+        // GRNET fork: in a sheet, closing it cancels the request.
+        navigatableAction = if (LocalShownInSheet.current) {
+            ScreenNavigateAction.CANCELABLE
+        } else {
+            ScreenNavigateAction.BACKABLE
+        },
         isLoading = state.isLoading,
         onBack = { viewModel.setEvent(Event.OnBack) },
         stickyBottom = { paddingValues ->
@@ -153,6 +159,15 @@ fun RequestScreen(
                 // its word, so that the amount fits on one line.
                 showPrimaryButtonIcon = state.requestDataUi.selectedCombination?.transactionData?.payment == null,
                 primaryButtonTakesRoom = state.requestDataUi.selectedCombination?.transactionData?.payment != null,
+                // GRNET fork: how a payment is approved, said before the user taps Pay.
+                confirmationHint = if (
+                    state.keysRequireUserAuthentication
+                    && state.requestDataUi.selectedCombination?.transactionData?.payment != null
+                ) {
+                    stringResource(R.string.request_confirmation_hint_device)
+                } else {
+                    null
+                },
             )
         },
         contentErrorConfig = state.error

@@ -108,6 +108,27 @@ selector shows. A credential without display meta-data is shown as before.
   to the verifier (rb-sca-card-dpc §2.9), and showing them there would
   suggest the merchant receives them.
 
+**A request from a browser opens as a sheet over the page**, not the whole
+wallet. Credential Manager starts `DcApiActivity`
+(`assembly-logic/.../ui/DcApiActivity.kt`), which now holds the Digital
+Credentials API intent filter instead of `MainActivity`: a translucent window
+with a scrim over the page and a panel along the bottom, 90% of the screen's
+height. The panel runs the wallet's own request, authentication, loading and
+result screens, which return the response and finish it, so the browser stays
+where it was. There is no unlock first, as before: the requested values stay
+hidden until the user authenticates to approve.
+
+- In the sheet the request screen has a close button instead of back. A tap on
+  the scrim cancels the request while it is shown; once approved, only the
+  result screen's Close finishes, so the response is not lost.
+- A payment whose card key requires the user says above Pay how it will be
+  approved: "You will confirm with your fingerprint or screen lock." This is
+  in the wallet's own window too.
+- The sheet is drawn in the activity's window, not as a Material
+  `ModalBottomSheet`, which opens a dialog window whose context is not the
+  activity: the screens finish the activity and show the device's prompt
+  through that context.
+
 An SD-JWT VC's `iat`, `exp` and `nbf` are shown as dates, titled Issued,
 Expires and Valid from, instead of seconds since 1970, for every credential
 (`DocumentHelper`).

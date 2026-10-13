@@ -20,4 +20,14 @@
 
     <!-- Application theme. -->
     <style name="Theme.EUDIWallet" parent="Theme.Base" />
+
+    <!-- GRNET fork: a request through the Digital Credentials API, as a sheet over the page that
+         made it (DcApiActivity). The window is see-through; the sheet draws its own scrim. -->
+    <style name="Theme.EUDIWallet.Sheet">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
 </resources>

@@ -227,7 +227,9 @@ class PresentationRequestViewModel(
         )
         keyCheckJob?.cancel()
         keyCheckJob = viewModelScope.launch {
-            keysRequireUserAuthentication = interactor.disclosedKeysRequireUserAuthentication()
+            val required = interactor.disclosedKeysRequireUserAuthentication()
+            keysRequireUserAuthentication = required
+            setState { copy(keysRequireUserAuthentication = required) }
         }
     }
 
