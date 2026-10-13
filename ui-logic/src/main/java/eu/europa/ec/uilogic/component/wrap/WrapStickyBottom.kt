@@ -17,10 +17,12 @@
 package eu.europa.ec.uilogic.component.wrap
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -35,15 +37,16 @@ sealed interface StickyBottomType {
     ) : StickyBottomType
 
     /**
-     * @property secondaryButtonFitsContent GRNET fork: the secondary button takes only the width
-     * its content needs and the primary button the rest, instead of half each; for a primary
-     * label that needs the room, such as a payment's amount.
+     * @property primaryButtonFitsContent GRNET fork: half each, as by default, unless the primary
+     * button's label needs more than half to fit on one line; then the primary button takes
+     * exactly that width and the secondary the rest, so the secondary is never wider than half.
+     * For a primary label that must not wrap, such as a payment's amount.
      */
     data class TwoButtons(
         val primaryButtonConfig: ButtonConfig,
         val secondaryButtonConfig: ButtonConfig,
         val secondaryButtonContent: @Composable RowScope.() -> Unit,
-        val secondaryButtonFitsContent: Boolean = false,
+        val primaryButtonFitsContent: Boolean = false,
     ) : StickyBottomType
 
     data object Generic : StickyBottomType
@@ -102,26 +105,31 @@ fun WrapStickyBottomContent(
                     )
                 }
 
-                Row(
-                    modifier = modifier,
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp)
-                ) {
-                    WrapButton(
-                        modifier = if (stickyBottomType.secondaryButtonFitsContent) {
-                            Modifier
-                        } else {
-                            Modifier.weight(1f)
-                        },
-                        buttonConfig = stickyBottomType.secondaryButtonConfig
+                BoxWithConstraints(modifier = modifier) {
+                    val half = (maxWidth - SPACING_SMALL.dp) / 2
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp)
                     ) {
-                        stickyBottomType.secondaryButtonContent(this)
-                    }
-                    WrapButton(
-                        modifier = Modifier.weight(1f),
-                        buttonConfig = stickyBottomType.primaryButtonConfig
-                    ) {
-                        content()
+                        WrapButton(
+                            modifier = Modifier.weight(1f),
+                            buttonConfig = stickyBottomType.secondaryButtonConfig
+                        ) {
+                            stickyBottomType.secondaryButtonContent(this)
+                        }
+                        WrapButton(
+                            // Measured before the weighted button: at least half, more only if
+                            // its label needs it to fit on one line.
+                            modifier = if (stickyBottomType.primaryButtonFitsContent) {
+                                Modifier.widthIn(min = half)
+                            } else {
+                                Modifier.weight(1f)
+                            },
+                            buttonConfig = stickyBottomType.primaryButtonConfig
+                        ) {
+                            content()
+                        }
                     }
                 }
             }

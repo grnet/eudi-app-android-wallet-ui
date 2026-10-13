@@ -155,10 +155,10 @@ fun RequestScreen(
                 primaryButtonEnabled = !state.isLoading && state.allowShare,
                 onPrimaryButtonClick = { viewModel.setEvent(Event.StickyButtonPressed) },
                 onCancelButtonClick = { viewModel.setEvent(Event.OnBack) },
-                // GRNET fork: no check mark beside "Pay 38.00 EUR", and Cancel only as wide as
-                // its word, so that the amount fits on one line.
+                // GRNET fork: no check mark beside "Pay 38.00 EUR", and the button wider than
+                // half only if that label needs it to fit on one line.
                 showPrimaryButtonIcon = state.requestDataUi.selectedCombination?.transactionData?.payment == null,
-                primaryButtonTakesRoom = state.requestDataUi.selectedCombination?.transactionData?.payment != null,
+                primaryButtonFitsLabel = state.requestDataUi.selectedCombination?.transactionData?.payment != null,
                 // GRNET fork: how a payment is approved, said before the user taps Pay.
                 confirmationHint = if (
                     state.keysRequireUserAuthentication

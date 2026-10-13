@@ -64,8 +64,9 @@ data class ConsentWarningSection(
  * warning, when present, docked above the buttons.
  *
  * [showPrimaryButtonIcon] (GRNET fork) leaves the confirm button's check mark out, and
- * [primaryButtonTakesRoom] (GRNET fork) gives the confirm button all the width Cancel does not
- * need, for a label that needs the room, such as a payment's amount. [confirmationHint] (GRNET
+ * [primaryButtonFitsLabel] (GRNET fork) keeps the buttons half each, but lets the confirm button
+ * grow past half when its label needs it to fit on one line, Cancel taking the rest: for a label
+ * that must not wrap, such as a payment's amount. [confirmationHint] (GRNET
  * fork), when given, says above the buttons how the user will confirm.
  */
 @Composable
@@ -80,7 +81,7 @@ fun ConsentStickyBottomSection(
     onPrimaryButtonClick: () -> Unit,
     onCancelButtonClick: () -> Unit,
     showPrimaryButtonIcon: Boolean = true,
-    primaryButtonTakesRoom: Boolean = false,
+    primaryButtonFitsLabel: Boolean = false,
     confirmationHint: String? = null,
 ) {
     Column(
@@ -147,7 +148,7 @@ fun ConsentStickyBottomSection(
                         secondaryButtonContent = {
                             Text(text = cancelButtonText)
                         },
-                        secondaryButtonFitsContent = primaryButtonTakesRoom,
+                        primaryButtonFitsContent = primaryButtonFitsLabel,
                     ),
                     showDivider = false,
                 )

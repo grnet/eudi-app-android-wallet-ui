@@ -112,7 +112,7 @@ selector shows. A credential without display meta-data is shown as before.
 wallet. Credential Manager starts `DcApiActivity`
 (`assembly-logic/.../ui/DcApiActivity.kt`), which now holds the Digital
 Credentials API intent filter instead of `MainActivity`: a translucent window
-with a scrim over the page and a panel along the bottom, 90% of the screen's
+with a scrim over the page and a panel along the bottom, 75% of the screen's
 height. The panel runs the wallet's own request, authentication, loading and
 result screens, which return the response and finish it, so the browser stays
 where it was. There is no unlock first, as before: the requested values stay
