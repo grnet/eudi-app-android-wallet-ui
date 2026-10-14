@@ -53,10 +53,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 
+/**
+ * @param content GRNET fork: what the screen shows while it works, instead of its header, such
+ * as the request it carries out.
+ */
 @Composable
 fun LoadingScreen(
     navController: NavController,
-    viewModel: LoadingViewModel
+    viewModel: LoadingViewModel,
+    content: (@Composable (PaddingValues) -> Unit)? = null,
 ) {
     val state: State by viewModel.viewState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -144,7 +149,8 @@ fun LoadingScreen(
             state = state,
             effectFlow = viewModel.effect,
             onNavigationRequested = onNavigationRequested,
-            paddingValues = paddingValues
+            paddingValues = paddingValues,
+            content = content,
         )
     }
 
@@ -159,20 +165,25 @@ private fun Content(
     state: State,
     effectFlow: Flow<Effect>,
     onNavigationRequested: (Effect.Navigation) -> Unit,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    content: (@Composable (PaddingValues) -> Unit)?,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.Top
-    ) {
+    if (content != null && state.rejection == null) {
+        content(paddingValues)
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.Top
+        ) {
 
-        ContentHeader(
-            modifier = Modifier.fillMaxWidth(),
-            config = state.headerConfig,
-        )
+            ContentHeader(
+                modifier = Modifier.fillMaxWidth(),
+                config = state.headerConfig,
+            )
+        }
     }
 
     LaunchedEffect(Unit) {

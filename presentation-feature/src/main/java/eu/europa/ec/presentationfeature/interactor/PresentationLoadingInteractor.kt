@@ -27,12 +27,14 @@ import eu.europa.ec.commonfeature.interactor.ScopedPresentationInteractor
 import eu.europa.ec.commonfeature.interactor.ScopedPresentationInteractorDelegate
 import eu.europa.ec.commonfeature.ui.request.transformer.formatPaymentAmount
 import eu.europa.ec.corelogic.controller.SendRequestedDocumentsPartialState
+import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
 import eu.europa.ec.corelogic.controller.WalletCorePartialState
 import eu.europa.ec.corelogic.controller.WalletCorePresentationController
 import eu.europa.ec.corelogic.model.AuthenticationData
 import eu.europa.ec.corelogic.model.PresentationTransactionDataDomain
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
+import eu.europa.ec.uilogic.component.PaymentCardUi
 import java.net.URI
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -70,9 +72,14 @@ interface PresentationLoadingInteractor : ScopedPresentationInteractor {
 class PresentationLoadingInteractorImpl(
     private val deviceAuthenticationInteractor: DeviceAuthenticationInteractor,
     private val resourceProvider: ResourceProvider,
-    walletCorePresentationController: WalletCorePresentationController? = null
+    walletCorePresentationController: WalletCorePresentationController? = null,
+    private val walletCoreDocumentsController: WalletCoreDocumentsController? = null,
 ) : PresentationLoadingInteractor,
     ScopedPresentationInteractorDelegate(walletCorePresentationController) {
+
+    // GRNET fork: the card a payment is paid with, as the prompt names it, found when the
+    // presentation asks for the user's authentication (see paymentPrompt).
+    private var paymentCardName: String? = null
 
     override val initiatorRoute: String
         get() = walletCorePresentationController.initiatorRoute
@@ -99,6 +106,7 @@ class PresentationLoadingInteractorImpl(
                 }
 
                 is WalletCorePartialState.UserAuthenticationRequired -> {
+                    paymentCardName = disclosedPaymentCardName()
                     PresentationLoadingObserveResponsePartialState.UserAuthenticationRequired(
                         response.authenticationData
                     )
@@ -124,9 +132,22 @@ class PresentationLoadingInteractorImpl(
     }
 
     /**
+     * GRNET fork: the name of the payment card among the disclosed documents, with its last four
+     * digits where known, "Gold Mastercard •••• 6487"; `null` if there is none.
+     */
+    private suspend fun disclosedPaymentCardName(): String? {
+        val documents = walletCoreDocumentsController ?: return null
+        return walletCorePresentationController.disclosedDocuments.orEmpty()
+            .firstNotNullOfOrNull { selection ->
+                documents.getDocumentById(selection.documentId)?.let { PaymentCardUi.from(it) }
+            }
+            ?.let { card -> listOfNotNull(card.name, card.lastFour?.let { "•••• $it" }).joinToString(" ") }
+    }
+
+    /**
      * GRNET fork: for a TS12 card payment, the prompt that unlocks the card's key says what it
-     * approves, as the request screen did: "Pay 70.00 EUR", "to Parthenon Museum". Else `null`,
-     * the generic text.
+     * approves, as the request screen did: "Pay 70.00 EUR", "to Parthenon Museum", and with which
+     * card, "Gold Mastercard •••• 6487". Else `null`, the generic text.
      */
     private fun paymentPrompt(): DeviceAuthenticationPrompt? {
         val payment = walletCorePresentationController.disclosedTransactionData
@@ -142,6 +163,7 @@ class PresentationLoadingInteractorImpl(
                 R.string.request_transaction_payment_to,
                 payment.payeeName,
             ),
+            description = paymentCardName,
         )
     }
 

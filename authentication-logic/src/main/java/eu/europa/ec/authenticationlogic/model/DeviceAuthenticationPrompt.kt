@@ -18,9 +18,11 @@ package eu.europa.ec.authenticationlogic.model
 
 /**
  * GRNET fork: what the system's authentication prompt says, instead of its generic text, such as
- * the payment that the authentication approves: "Pay 70.00 EUR", "to Parthenon Museum".
+ * the payment that the authentication approves: "Pay 70.00 EUR", "to Parthenon Museum", and the
+ * card it is paid with, "Gold Mastercard •••• 6487".
  */
 data class DeviceAuthenticationPrompt(
     val title: String,
     val subtitle: String? = null,
+    val description: String? = null,
 )

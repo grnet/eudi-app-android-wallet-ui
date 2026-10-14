@@ -90,6 +90,7 @@ class DeviceAuthenticationControllerImpl(
                     )
                     .setAllowedAuthenticators(authenticators)
                     .apply {
+                        prompt?.description?.let { setDescription(it) }
                         if (authenticators and DEVICE_CREDENTIAL == 0) {
                             setNegativeButtonText(resourceProvider.getString(R.string.generic_cancel))
                         }

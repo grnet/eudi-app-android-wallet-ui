@@ -111,6 +111,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -246,6 +247,27 @@ fun RequestScreen(
     OncePerViewModelEffect(viewModel) {
         viewModel.setEvent(Event.Init(intentAction = intentAction))
     }
+}
+
+/**
+ * GRNET fork: the request as [RequestScreen] shows it, without its buttons and not to be acted
+ * on: what a sheet keeps showing while the device's own prompt, over it, approves a payment.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RequestSummary(
+    state: State,
+    paddingValues: PaddingValues,
+) {
+    Content(
+        state = state,
+        effectFlow = emptyFlow(),
+        onEventSend = {},
+        onNavigationRequested = {},
+        paddingValues = paddingValues,
+        coroutineScope = rememberCoroutineScope(),
+        modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

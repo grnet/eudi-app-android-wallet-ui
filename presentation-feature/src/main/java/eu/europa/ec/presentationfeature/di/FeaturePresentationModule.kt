@@ -53,10 +53,12 @@ fun providePresentationRequestInteractor(
 fun providePresentationLoadingInteractor(
     deviceAuthenticationInteractor: DeviceAuthenticationInteractor,
     resourceProvider: ResourceProvider,
+    walletCoreDocumentsController: WalletCoreDocumentsController,
 ): PresentationLoadingInteractor {
     return PresentationLoadingInteractorImpl(
-        deviceAuthenticationInteractor,
-        resourceProvider,
+        deviceAuthenticationInteractor = deviceAuthenticationInteractor,
+        resourceProvider = resourceProvider,
+        walletCoreDocumentsController = walletCoreDocumentsController,
     )
 }
 
