@@ -122,9 +122,15 @@ hidden until the user authenticates to approve.
 - In the sheet the request screen has a close button instead of back. A tap on
   the page cancels the request while it is shown; once approved, only the
   result screen's Close finishes, so the response is not lost.
-- A payment whose card key requires the user says above Pay how it will be
-  approved: "You will confirm with your fingerprint or screen lock." This is
-  in the wallet's own window too.
+- A payment whose card key requires the user goes straight to the device's
+  prompt once the request is checked, without a tap on Pay
+  (`PresentationRequestScreen`). Under the prompt the sheet keeps the
+  confirmation, without its buttons, instead of "Please wait…"; the prompt
+  names the amount, the payee and the card, "Gold Mastercard •••• 6487".
+  Cancelled, the prompt leaves the confirmation with Pay and Cancel, and does
+  not come back by itself; above Pay, how it will be approved: "You will
+  confirm with your fingerprint or screen lock." A request with a warning
+  about its requester waits for the user to accept it first.
 - The close button stays in place while the payment is approved, and cancels
   the request as on the confirmation, until the user has authenticated: then
   it goes, while the response is sent, its room kept so that nothing moves.
