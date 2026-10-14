@@ -57,10 +57,10 @@ class TransactionDataTransformer(
             sectionId = sectionId,
             documentUrlsByItemId = documentUrlsByItemId,
         )
-        // GRNET fork: a payment is approved, not signed, and its payee and amount are what the
-        // user consents to (TS12 dynamic linking), so they are shown without a tap.
+        // GRNET fork: a payment is approved, not signed. Its payee and amount, what the user
+        // consents to (TS12 dynamic linking), are shown without a tap above the details, so the
+        // details, the payload in full, start folded.
         val paymentsOnly = transactions.all { it is PresentationTransactionDataDomain.Payment }
-        val hasPayment = transactions.any { it is PresentationTransactionDataDomain.Payment }
         return RequestTransactionDataUi(
             title = resourceProvider.getString(
                 if (paymentsOnly) R.string.request_transaction_payment_section_title
@@ -83,7 +83,7 @@ class TransactionDataTransformer(
                     ),
                 ),
                 nestedItems = rows,
-                isExpanded = hasPayment,
+                isExpanded = false,
             ),
             documentUrlsByItemId = documentUrlsByItemId.toMap(),
             payment = transactions

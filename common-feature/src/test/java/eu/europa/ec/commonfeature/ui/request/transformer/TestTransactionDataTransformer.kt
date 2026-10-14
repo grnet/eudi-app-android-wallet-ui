@@ -572,13 +572,13 @@ class TestTransactionDataTransformer {
     // framework row, and no DCQL query id. The payment itself is summarised, without a card when
     // the wallet has no payment card for it.
     @Test
-    fun `Given a payment, When transformToUi is called, Then an expanded payment section is returned`() {
+    fun `Given a payment, When transformToUi is called, Then a folded payment section is returned`() {
         // When
         val section = transform(transactions = listOf(mockedPayment))!!
 
         // Then
         assertEquals("Payment to approve", section.title)
-        assertTrue(section.details.isExpanded)
+        assertFalse(section.details.isExpanded)
         assertEquals("Payment details", section.details.header.text())
         assertEquals(
             listOf(
@@ -637,7 +637,7 @@ class TestTransactionDataTransformer {
         // Then
         assertEquals("Data to be signed", section.title)
         assertEquals("Signature details", section.details.header.text())
-        assertTrue(section.details.isExpanded)
+        assertFalse(section.details.isExpanded)
         assertEquals(listOf("eIDAS"), section.values("Trust framework"))
         assertEquals(listOf("38.00 EUR"), section.values("Amount"))
     }

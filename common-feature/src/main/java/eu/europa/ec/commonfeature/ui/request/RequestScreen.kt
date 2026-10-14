@@ -20,15 +20,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,7 +42,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.Dp
@@ -58,6 +64,7 @@ import eu.europa.ec.corelogic.model.ClaimDomain
 import eu.europa.ec.corelogic.model.ClaimPathDomain
 import eu.europa.ec.corelogic.model.ClaimType
 import eu.europa.ec.resourceslogic.R
+import eu.europa.ec.resourceslogic.theme.values.success
 import eu.europa.ec.resourceslogic.theme.values.warning
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.ErrorInfo
@@ -80,6 +87,7 @@ import eu.europa.ec.uilogic.component.preview.LargeTextPreviews
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModePreviews
 import eu.europa.ec.uilogic.component.utils.OncePerViewModelEffect
+import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_SMALL
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
 import eu.europa.ec.uilogic.component.wrap.BottomSheetTextDataUi
@@ -89,7 +97,9 @@ import eu.europa.ec.uilogic.component.wrap.ExpandableListItemUi
 import eu.europa.ec.uilogic.component.wrap.SimpleBottomSheet
 import eu.europa.ec.uilogic.component.wrap.TextConfig
 import eu.europa.ec.uilogic.component.wrap.TextStyleKey
+import eu.europa.ec.uilogic.component.wrap.WrapCard
 import eu.europa.ec.uilogic.component.wrap.WrapExpandableListItem
+import eu.europa.ec.uilogic.component.wrap.WrapIcon
 import eu.europa.ec.uilogic.component.wrap.WrapModalBottomSheet
 import eu.europa.ec.uilogic.component.wrap.WrapSelectableCard
 import eu.europa.ec.uilogic.component.wrap.WrapText
@@ -380,24 +390,35 @@ private fun VerifierHeaderSection(
     centered: Boolean = false,
 ) {
     Column(modifier = modifier) {
-        caption?.let { safeCaption ->
-            WrapText(
-                modifier = Modifier.fillMaxWidth(),
-                text = safeCaption,
-                textConfig = TextConfig(
-                    styleKey = TextStyleKey.LabelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = if (centered) TextAlign.Center else TextAlign.Start,
-                ),
+        // GRNET fork: a captioned party, centred (a payment's requester), on one line.
+        if (caption != null && centered) {
+            CaptionedRelyingParty(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = SPACING_SMALL.dp),
+                caption = caption,
+                relyingParty = header.relyingParty,
+            )
+        } else {
+            caption?.let { safeCaption ->
+                WrapText(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = safeCaption,
+                    textConfig = TextConfig(
+                        styleKey = TextStyleKey.LabelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = if (centered) TextAlign.Center else TextAlign.Start,
+                    ),
+                )
+            }
+            RelyingParty(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = SPACING_SMALL.dp),
+                relyingPartyData = header.relyingParty,
+                layout = if (centered) RelyingPartyLayout.StackedCentered else RelyingPartyLayout.InlineStart,
             )
         }
-        RelyingParty(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = SPACING_SMALL.dp),
-            relyingPartyData = header.relyingParty,
-            layout = if (centered) RelyingPartyLayout.StackedCentered else RelyingPartyLayout.InlineStart,
-        )
 
         header.privacyPolicyUrl?.let { safePrivacyPolicyUrl ->
             InfoLinkSection(
@@ -419,6 +440,47 @@ private fun VerifierHeaderSection(
                 body = safeIntendedUse,
             )
         }
+    }
+}
+
+/**
+ * GRNET fork: [caption], then the party's verified badge and name, on one line and centred, such
+ * as "Requested by: ✓ Demo Payment Services". A long name wraps under itself. The party's logo,
+ * identifier and description, which [RelyingParty] would show around the name, are left out.
+ */
+@Composable
+private fun CaptionedRelyingParty(
+    modifier: Modifier,
+    caption: String,
+    relyingParty: RelyingPartyDataUi,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(SPACING_EXTRA_SMALL.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        WrapText(
+            text = caption,
+            textConfig = TextConfig(
+                styleKey = TextStyleKey.LabelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            ),
+        )
+        if (relyingParty.isVerified) {
+            WrapIcon(
+                modifier = Modifier.size(18.dp),
+                iconData = AppIcons.Verified,
+                customTint = MaterialTheme.colorScheme.success,
+            )
+        }
+        WrapText(
+            text = relyingParty.name,
+            textConfig = TextConfig(
+                styleKey = if (relyingParty.emphasizeName) TextStyleKey.BodyMediumBold else TextStyleKey.BodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = Int.MAX_VALUE,
+            ),
+        )
     }
 }
 
@@ -628,7 +690,13 @@ private fun DisplayRequestItems(
         verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp)
     ) {
         requestDocuments.forEachIndexed { index, requestDocument ->
-            WrapExpandableListItem(
+            // GRNET fork: with the values hidden, the fields only, as nothing would open.
+            if (hideClaimValues && !claimsAreSelectable) RequestedFields(
+                modifier = Modifier
+                    .applyTestTag(TestTag.RequestScreen.requestedDocument(index = index))
+                    .fillMaxWidth(),
+                requestDocument = requestDocument,
+            ) else WrapExpandableListItem(
                 modifier = Modifier
                     .applyTestTag(TestTag.RequestScreen.requestedDocument(index = index))
                     .fillMaxWidth(),
@@ -652,6 +720,59 @@ private fun DisplayRequestItems(
                     containerColor = MaterialTheme.colorScheme.surfaceDim,
                 ),
             )
+        }
+    }
+}
+
+/**
+ * GRNET fork: a requested credential whose values are hidden, as in a request shown before the
+ * user authenticates: its name and the names of the claims requested, two to a line, as Android's
+ * own sheet lists them just before. Rows that open on blurred values would tell the user nothing.
+ */
+@Composable
+private fun RequestedFields(
+    modifier: Modifier,
+    requestDocument: RequestDocumentItemUi,
+) {
+    val name = (requestDocument.headerUi.header.mainContentData as? ListItemMainContentDataUi.Text)
+        ?.text
+        .orEmpty()
+    val fields = requestDocument.domainPayload.docClaimsDomain.map { it.displayTitle }
+
+    WrapCard(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceDim),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(SPACING_MEDIUM.dp),
+            verticalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
+        ) {
+            // As the expandable rows' headers.
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            fields.chunked(2).forEach { line ->
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    line.forEach { field ->
+                        WrapText(
+                            modifier = Modifier.weight(1f),
+                            text = "• $field",
+                            textConfig = TextConfig(
+                                styleKey = TextStyleKey.BodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                            ),
+                        )
+                    }
+                    if (line.size == 1) Spacer(modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }

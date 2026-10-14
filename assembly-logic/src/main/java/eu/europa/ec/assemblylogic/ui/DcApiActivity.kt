@@ -118,7 +118,7 @@ class DcApiActivity : EudiComponentActivity() {
 private const val START_ROUTE = "DC_API_SHEET_START"
 
 // Of the screen's height; the rest shows the page behind, under the scrim.
-private const val SHEET_HEIGHT_FRACTION = 0.75f
+private const val SHEET_HEIGHT_FRACTION = 0.7f
 
 /**
  * The sheet: a scrim over the caller, and the screens in a panel along the bottom. A tap on the
