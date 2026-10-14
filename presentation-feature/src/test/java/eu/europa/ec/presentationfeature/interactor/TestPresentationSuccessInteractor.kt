@@ -59,6 +59,7 @@ import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.net.URI
+import eu.europa.ec.testfeature.util.mockedPidSharedName
 
 class TestPresentationSuccessInteractor {
 
@@ -281,8 +282,9 @@ class TestPresentationSuccessInteractor {
                     ).encode(),
                     docUi.header.itemId
                 )
+                // GRNET fork: a PID by what it is, not by its format's name.
                 assertEquals(
-                    ListItemMainContentDataUi.Text(text = pid.name),
+                    ListItemMainContentDataUi.Text(text = mockedPidSharedName),
                     docUi.header.mainContentData
                 )
                 assertEquals(

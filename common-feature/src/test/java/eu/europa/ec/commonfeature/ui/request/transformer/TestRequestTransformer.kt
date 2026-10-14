@@ -51,6 +51,7 @@ import eu.europa.ec.testfeature.util.mockedMdocPresentationMatch
 import eu.europa.ec.testfeature.util.mockedNonSelectableClaims
 import eu.europa.ec.testfeature.util.mockedPidDocName
 import eu.europa.ec.testfeature.util.mockedPidId
+import eu.europa.ec.testfeature.util.mockedPidSharedName
 import eu.europa.ec.testfeature.util.mockedSdJwtPidId
 import eu.europa.ec.testfeature.util.mockedSdJwtPidVct
 import eu.europa.ec.testfeature.util.mockedSdJwtVcClaim
@@ -151,7 +152,8 @@ class TestRequestTransformer {
 
             val payload = items.single().domainPayload
             assertEquals(mockedPidId, payload.docId)
-            assertEquals(mockedPidDocName, payload.docName)
+            // GRNET fork: a PID by what it is, not by its format's name.
+            assertEquals(mockedPidSharedName, payload.docName)
             assertEquals(DocumentFormatDomain.MsoMdoc, payload.docFormatDomain)
             assertEquals(null, payload.queryId)
 
