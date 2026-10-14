@@ -21,9 +21,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -117,13 +115,13 @@ class DcApiActivity : EudiComponentActivity() {
 
 private const val START_ROUTE = "DC_API_SHEET_START"
 
-// Of the screen's height; the rest shows the page behind, under the scrim.
+// Of the screen's height; the rest shows the page behind.
 private const val SHEET_HEIGHT_FRACTION = 0.7f
 
 /**
- * The sheet: a scrim over the caller, and the screens in a panel along the bottom. A tap on the
- * scrim cancels the request while it is being shown, as Cancel does; once the user has approved
- * it, only the screens' own buttons close the sheet, so that the response is not lost.
+ * The sheet: the screens in a panel along the bottom, over the caller's page. A tap on the page
+ * cancels the request while it is being shown, as Cancel does; once the user has approved it,
+ * only the screens' own buttons close the sheet, so that the response is not lost.
  */
 @Composable
 private fun RequestSheet(
@@ -138,20 +136,20 @@ private fun RequestSheet(
     val visible = remember { MutableTransitionState(false).apply { targetState = true } }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AnimatedVisibility(visibleState = visible, enter = fadeIn()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = SCRIM_ALPHA))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        enabled = showingRequest,
-                        onClickLabel = stringResource(R.string.request_cancel_button_text),
-                        onClick = onDismiss,
-                    )
-            )
-        }
+        // No scrim of our own: the page is already dimmed. Android's credential selector, which
+        // started this activity, leaves its dim under this window, which is see-through, and a
+        // scrim here dimmed the page a second time. What is left of it is where a tap cancels.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    enabled = showingRequest,
+                    onClickLabel = stringResource(R.string.request_cancel_button_text),
+                    onClick = onDismiss,
+                )
+        )
 
         AnimatedVisibility(
             visibleState = visible,
@@ -185,5 +183,3 @@ private fun RequestSheet(
         }
     }
 }
-
-private const val SCRIM_ALPHA = 0.32f

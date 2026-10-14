@@ -112,14 +112,15 @@ selector shows. A credential without display meta-data is shown as before.
 wallet. Credential Manager starts `DcApiActivity`
 (`assembly-logic/.../ui/DcApiActivity.kt`), which now holds the Digital
 Credentials API intent filter instead of `MainActivity`: a translucent window
-with a scrim over the page and a panel along the bottom, 70% of the screen's
-height. The panel runs the wallet's own request, authentication, loading and
+with a panel along the bottom, 70% of the screen's height, over the page. It
+draws no scrim: Android's credential selector leaves its dim under the window,
+and a scrim of its own dimmed the page a second time. The panel runs the wallet's own request, authentication, loading and
 result screens, which return the response and finish it, so the browser stays
 where it was. There is no unlock first, as before: the requested values stay
 hidden until the user authenticates to approve.
 
 - In the sheet the request screen has a close button instead of back. A tap on
-  the scrim cancels the request while it is shown; once approved, only the
+  the page cancels the request while it is shown; once approved, only the
   result screen's Close finishes, so the response is not lost.
 - A payment whose card key requires the user says above Pay how it will be
   approved: "You will confirm with your fingerprint or screen lock." This is
