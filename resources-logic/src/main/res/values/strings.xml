@@ -256,6 +256,7 @@
     <string name="request_sticky_button_text_payment">Pay %1$s</string>
     <string name="request_screen_title_payment">Confirm payment</string>
     <string name="request_relying_party_requested_by">Requested by</string>
+    <string name="request_expired_error">This request has expired. Go back to the page that made it and try again.</string>
     <string name="request_confirmation_hint_device">You will confirm with your fingerprint or screen lock.</string>
     <!-- GRNET fork: payment cards, WE BUILD SCA-Card (DPC) -->
     <string name="payment_card_expiry_date">Expiry date</string>

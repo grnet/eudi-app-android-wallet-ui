@@ -23,7 +23,9 @@ import eu.europa.ec.eudi.openid4vci.CredentialOfferRequestError
 import eu.europa.ec.eudi.openid4vci.CredentialOfferRequestException
 import eu.europa.ec.eudi.wallet.trust.IssuerNotTrustedException
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TestThrowableExtensions {
@@ -174,6 +176,35 @@ class TestThrowableExtensions {
         message = "Issuer certificate chain is not trusted",
         cause = RuntimeException("untrusted chain"),
     )
+
+    //endregion
+
+    //region isExpiredRequest
+
+    // GRNET fork: the OpenID4VP library's rendering of a request object past its `exp`.
+    @Test
+    fun `a request object past its exp is an expired request`() {
+        val failure = RuntimeException("InvalidJarJwt(cause=Invalid signature Expired JWT)")
+
+        assertTrue(failure.isExpiredRequest())
+    }
+
+    @Test
+    fun `an expired request object behind another failure is an expired request`() {
+        val failure = IllegalStateException(
+            "request failed",
+            RuntimeException("InvalidJarJwt(cause=Invalid signature Expired JWT)"),
+        )
+
+        assertTrue(failure.isExpiredRequest())
+    }
+
+    @Test
+    fun `any other invalid request object is not an expired request`() {
+        val failure = RuntimeException("InvalidJarJwt(cause=Invalid signature)")
+
+        assertFalse(failure.isExpiredRequest())
+    }
 
     //endregion
 }
