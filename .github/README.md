@@ -125,6 +125,11 @@ hidden until the user authenticates to approve.
 - A payment whose card key requires the user says above Pay how it will be
   approved: "You will confirm with your fingerprint or screen lock." This is
   in the wallet's own window too.
+- The close button stays in place while the payment is approved, and cancels
+  the request as on the confirmation, until the user has authenticated: then
+  it goes, while the response is sent, its room kept so that nothing moves.
+  Outside the sheet, the loading screen keeps upstream's five seconds before
+  it can be cancelled.
 - The sheet is drawn in the activity's window, not as a Material
   `ModalBottomSheet`, which opens a dialog window whose context is not the
   activity: the screens finish the activity and show the device's prompt

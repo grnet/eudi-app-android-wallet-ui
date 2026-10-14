@@ -42,7 +42,9 @@ data class State(
     val rejection: RejectionState? = null,
     val headerConfig: ContentHeaderConfig,
     val isCancellable: Boolean,
-    val notifyOnAuthenticationFailure: Boolean = false
+    val notifyOnAuthenticationFailure: Boolean = false,
+    // GRNET fork: the user has authenticated, and the work it approved is under way.
+    val isAuthenticated: Boolean = false,
 ) : ViewState
 
 sealed class Event : ViewEvent {

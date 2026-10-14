@@ -211,6 +211,7 @@ class PresentationLoadingViewModel(
                     viewModelScope.launch {
                         authenticationData.onAuthenticationSuccess()
                         if (isFinalAuthentication) {
+                            setState { copy(isAuthenticated = true) }
                             sendRequestedDocumentsAction()
                         } else {
                             delay(500.milliseconds)

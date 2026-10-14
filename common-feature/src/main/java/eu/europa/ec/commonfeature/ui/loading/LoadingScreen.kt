@@ -37,6 +37,7 @@ import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.uilogic.component.content.ContentHeader
 import eu.europa.ec.uilogic.component.content.ContentHeaderConfig
 import eu.europa.ec.uilogic.component.content.ContentScreen
+import eu.europa.ec.uilogic.component.content.LocalShownInSheet
 import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModePreviews
@@ -46,6 +47,7 @@ import eu.europa.ec.uilogic.component.wrap.ButtonType
 import eu.europa.ec.uilogic.component.wrap.StickyBottomConfig
 import eu.europa.ec.uilogic.component.wrap.StickyBottomType
 import eu.europa.ec.uilogic.component.wrap.WrapStickyBottomContent
+import eu.europa.ec.uilogic.extension.finish
 import eu.europa.ec.uilogic.extension.openUrl
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -60,22 +62,35 @@ fun LoadingScreen(
     val context = LocalContext.current
     val rejection = state.rejection
     val isRejected = rejection != null
+    // GRNET fork: in a sheet, the close button is there from the start and does what it does on
+    // the screen before: it cancels the request and closes the sheet. Not once the user has
+    // authenticated, while the response is on its way.
+    val inSheet = LocalShownInSheet.current
 
     ContentScreen(
         isLoading = state.error != null && !isRejected,
-        navigatableAction = if (state.isCancellable && !isRejected) {
+        navigatableAction = if (isRejected) {
+            ScreenNavigateAction.NONE
+        } else if (inSheet) {
+            if (state.isAuthenticated) ScreenNavigateAction.NONE else ScreenNavigateAction.CANCELABLE
+        } else if (state.isCancellable) {
             ScreenNavigateAction.CANCELABLE
         } else {
             ScreenNavigateAction.NONE
         },
         onBack = if (isRejected) {
             { viewModel.setEvent(Event.CloseRejection) }
+        } else if (inSheet) {
+            if (state.isAuthenticated) null else { { context.finish() } }
         } else if (state.isCancellable) {
             { viewModel.setEvent(Event.GoBack) }
         } else {
             null
         },
         contentErrorConfig = state.error,
+        // GRNET fork: in a sheet, the close button's room even without it, as the screen before
+        // has it, so that nothing moves when it goes.
+        keepToolBar = inSheet,
         stickyBottom = if (rejection != null) {
             { paddingValues ->
                 RejectionAction(
