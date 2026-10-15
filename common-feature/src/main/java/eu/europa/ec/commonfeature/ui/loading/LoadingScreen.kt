@@ -67,6 +67,45 @@ fun LoadingScreen(
     // authenticated, while the response is on its way.
     val inSheet = LocalShownInSheet.current
 
+    val onNavigationRequested: (Effect.Navigation) -> Unit = { navigationEffect ->
+        when (navigationEffect) {
+            is Effect.Navigation.SwitchScreen -> {
+                navController.navigate(navigationEffect.screenRoute) {
+                    popUpTo(viewModel.getCallerScreen().screenRoute) {
+                        inclusive = true
+                    }
+                }
+            }
+
+            is Effect.Navigation.PopBackStackUpTo -> {
+                navController.popBackStack(
+                    route = navigationEffect.screenRoute,
+                    inclusive = navigationEffect.inclusive
+                )
+            }
+
+            is Effect.Navigation.CloseRejection -> {
+                navController.popBackStack(
+                    route = navigationEffect.initiatorRoute,
+                    inclusive = false,
+                )
+                navigationEffect.redirectUri?.let { redirectUri ->
+                    context.openUrl(uri = redirectUri)
+                }
+            }
+        }
+    }
+
+    // GRNET fork: a navigation the view model keeps until it is done, done once the screen is
+    // shown, the first time or again after the activity's recreation.
+    val pendingNavigation = state.pendingNavigation
+    LaunchedEffect(pendingNavigation) {
+        if (pendingNavigation != null) {
+            viewModel.setEvent(Event.NavigationHandled)
+            onNavigationRequested(pendingNavigation)
+        }
+    }
+
     ContentScreen(
         isLoading = state.error != null && !isRejected,
         navigatableAction = if (isRejected) {
@@ -104,34 +143,7 @@ fun LoadingScreen(
         Content(
             state = state,
             effectFlow = viewModel.effect,
-            onNavigationRequested = { navigationEffect ->
-                when (navigationEffect) {
-                    is Effect.Navigation.SwitchScreen -> {
-                        navController.navigate(navigationEffect.screenRoute) {
-                            popUpTo(viewModel.getCallerScreen().screenRoute) {
-                                inclusive = true
-                            }
-                        }
-                    }
-
-                    is Effect.Navigation.PopBackStackUpTo -> {
-                        navController.popBackStack(
-                            route = navigationEffect.screenRoute,
-                            inclusive = navigationEffect.inclusive
-                        )
-                    }
-
-                    is Effect.Navigation.CloseRejection -> {
-                        navController.popBackStack(
-                            route = navigationEffect.initiatorRoute,
-                            inclusive = false,
-                        )
-                        navigationEffect.redirectUri?.let { redirectUri ->
-                            context.openUrl(uri = redirectUri)
-                        }
-                    }
-                }
-            },
+            onNavigationRequested = onNavigationRequested,
             paddingValues = paddingValues
         )
     }
