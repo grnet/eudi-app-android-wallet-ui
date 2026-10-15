@@ -101,6 +101,10 @@ enum class ImePaddingConfig {
 
 data class BroadcastAction(val intentFilters: List<String>, val callback: (Intent?) -> Unit)
 
+/**
+ * @param keepToolBar GRNET fork: the toolbar's room even with no button in it, so that the
+ * content does not move when one appears.
+ */
 @Composable
 fun ContentScreen(
     isLoading: Boolean = false,
@@ -116,11 +120,13 @@ fun ContentScreen(
     contentErrorConfig: ContentErrorConfig? = null,
     broadcastAction: BroadcastAction? = null,
     imePaddingConfig: ImePaddingConfig = ImePaddingConfig.NO_PADDING,
+    keepToolBar: Boolean = false,
     bodyContent: @Composable (PaddingValues) -> Unit
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
 
     val hasToolBar = contentErrorConfig != null
+            || keepToolBar
             || navigatableAction != ScreenNavigateAction.NONE
             || topBar != null
             || toolBarConfig?.actions?.isNotEmpty() == true

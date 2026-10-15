@@ -42,7 +42,12 @@ data class State(
     val rejection: RejectionState? = null,
     val headerConfig: ContentHeaderConfig,
     val isCancellable: Boolean,
-    val notifyOnAuthenticationFailure: Boolean = false
+    val notifyOnAuthenticationFailure: Boolean = false,
+    // GRNET fork: the user has authenticated, and the work it approved is under way.
+    val isAuthenticated: Boolean = false,
+    // GRNET fork: where the screen goes next, kept until it has gone there: unlike an effect, it
+    // outlives the screen, which the activity's recreation (a rotation) can tear down first.
+    val pendingNavigation: Effect.Navigation? = null,
 ) : ViewState
 
 sealed class Event : ViewEvent {
@@ -51,6 +56,7 @@ sealed class Event : ViewEvent {
     data object GoBack : Event()
     data object CloseRejection : Event()
     data object DismissError : Event()
+    data object NavigationHandled : Event()
 }
 
 sealed class Effect : ViewSideEffect {
@@ -130,6 +136,22 @@ abstract class LoadingViewModel : MviViewModel<Event, State, Effect>() {
                     copy(error = null)
                 }
             }
+
+            is Event.NavigationHandled -> {
+                setState {
+                    copy(pendingNavigation = null)
+                }
+            }
+        }
+    }
+
+    /**
+     * GRNET fork: navigates as [navigation] says even if the screen is recreated before it can,
+     * through [State.pendingNavigation].
+     */
+    protected fun navigateWhenShown(navigation: Effect.Navigation) {
+        setState {
+            copy(pendingNavigation = navigation)
         }
     }
 

@@ -26,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import eu.europa.ec.commonfeature.ui.request.model.RegistrationWarningUi
 import eu.europa.ec.commonfeature.ui.request.model.RegistrationWarningVariantUi
@@ -63,8 +64,10 @@ data class ConsentWarningSection(
  * warning, when present, docked above the buttons.
  *
  * [showPrimaryButtonIcon] (GRNET fork) leaves the confirm button's check mark out, and
- * [primaryButtonTakesRoom] (GRNET fork) gives the confirm button all the width Cancel does not
- * need, for a label that needs the room, such as a payment's amount.
+ * [primaryButtonFitsLabel] (GRNET fork) keeps the buttons half each, but lets the confirm button
+ * grow past half when its label needs it to fit on one line, Cancel taking the rest: for a label
+ * that must not wrap, such as a payment's amount. [confirmationHint] (GRNET
+ * fork), when given, says above the buttons how the user will confirm.
  */
 @Composable
 fun ConsentStickyBottomSection(
@@ -78,7 +81,8 @@ fun ConsentStickyBottomSection(
     onPrimaryButtonClick: () -> Unit,
     onCancelButtonClick: () -> Unit,
     showPrimaryButtonIcon: Boolean = true,
-    primaryButtonTakesRoom: Boolean = false,
+    primaryButtonFitsLabel: Boolean = false,
+    confirmationHint: String? = null,
 ) {
     Column(
         modifier = modifier,
@@ -112,6 +116,18 @@ fun ConsentStickyBottomSection(
                 )
             }
 
+            confirmationHint?.let { hint ->
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = SPACING_MEDIUM.dp),
+                    text = hint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
+
             WrapStickyBottomContent(
                 modifier = Modifier
                     .applyTestTag(buttonsTestTag)
@@ -132,7 +148,7 @@ fun ConsentStickyBottomSection(
                         secondaryButtonContent = {
                             Text(text = cancelButtonText)
                         },
-                        secondaryButtonFitsContent = primaryButtonTakesRoom,
+                        primaryButtonFitsContent = primaryButtonFitsLabel,
                     ),
                     showDivider = false,
                 )

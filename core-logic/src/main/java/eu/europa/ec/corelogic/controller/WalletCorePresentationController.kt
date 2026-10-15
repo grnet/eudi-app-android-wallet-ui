@@ -24,6 +24,7 @@ import eu.europa.ec.businesslogic.extension.safeAsync
 import eu.europa.ec.businesslogic.extension.toUri
 import eu.europa.ec.corelogic.di.WalletCoreScope
 import eu.europa.ec.corelogic.di.getOrCreateKoinScope
+import eu.europa.ec.corelogic.extension.isExpiredRequest
 import eu.europa.ec.corelogic.extension.toClaimPath
 import eu.europa.ec.corelogic.extension.toRegistrationStatusDomain
 import eu.europa.ec.corelogic.model.AuthenticationData
@@ -45,6 +46,7 @@ import eu.europa.ec.eudi.wallet.EudiWallet
 import eu.europa.ec.eudi.wallet.dcapi.process.openid4vp.ProcessedOpenId4VpDCAPIRequest
 import eu.europa.ec.eudi.wallet.document.DocumentExtensions.getDefaultKeyUnlockData
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.dcql.ProcessedDcqlRequest
+import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import java.net.URI
 import kotlinx.coroutines.CancellationException
@@ -348,7 +350,9 @@ class WalletCorePresentationControllerImpl(
                         TransferEventPartialState.VerifierNotTrusted
                     } else {
                         TransferEventPartialState.Error(
-                            error = throwable.message.orEmpty().ifEmpty { genericErrorMessage }
+                            error = throwable.requestErrorMessage(
+                                throwable.message.orEmpty().ifEmpty { genericErrorMessage }
+                            )
                         )
                     }
                 )
@@ -675,7 +679,7 @@ class WalletCorePresentationControllerImpl(
                 TransferEventPartialState.VerifierNotTrusted
             } else {
                 TransferEventPartialState.Error(
-                    error = throwable.localizedMessage ?: genericErrorMessage
+                    error = throwable.requestErrorMessage(throwable.localizedMessage ?: genericErrorMessage)
                 )
             }
         }
@@ -733,6 +737,13 @@ class WalletCorePresentationControllerImpl(
         requireConfig()
         eudiWallet.removeTransferEventListener(listener)
     }
+
+    /**
+     * GRNET fork: what the user is told when a request cannot be processed: that it has expired,
+     * when it has, instead of the library's own wording; otherwise [fallback], as before.
+     */
+    private fun Throwable.requestErrorMessage(fallback: String): String =
+        if (isExpiredRequest()) resourceProvider.getString(R.string.request_expired_error) else fallback
 
     private fun requireConfig(): PresentationControllerConfig {
         if (!::_config.isInitialized) {

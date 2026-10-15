@@ -20,6 +20,7 @@ import android.content.Intent
 import eu.europa.ec.businesslogic.extension.ifEmptyOrNull
 import eu.europa.ec.businesslogic.extension.safeAsync
 import eu.europa.ec.businesslogic.provider.UuidProvider
+import eu.europa.ec.commonfeature.extension.nameWhenShared
 import eu.europa.ec.commonfeature.extension.toExpandableListItems
 import eu.europa.ec.commonfeature.interactor.ScopedPresentationInteractor
 import eu.europa.ec.commonfeature.interactor.ScopedPresentationInteractorDelegate
@@ -42,9 +43,9 @@ import eu.europa.ec.uilogic.component.PaymentCardUi
 import eu.europa.ec.uilogic.component.RelyingPartyDataUi
 import eu.europa.ec.uilogic.component.content.ContentHeaderConfig
 import eu.europa.ec.uilogic.component.wrap.ExpandableListItemUi
+import java.net.URI
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import java.net.URI
 
 sealed class PresentationSuccessInteractorGetUiItemsPartialState {
     data class Success(
@@ -145,7 +146,7 @@ class PresentationSuccessInteractorImpl(
                             header = ListItemDataUi(
                                 itemId = itemId,
                                 mainContentData = ListItemMainContentDataUi.Text(
-                                    text = paymentCard?.name ?: document.name
+                                    text = paymentCard?.name ?: document.nameWhenShared(resourceProvider)
                                 ),
                                 supportingContentData = ListItemSupportingContentDataUi.Text(
                                     text = resourceProvider.getString(R.string.document_success_collapsed_supporting_text),

@@ -216,7 +216,20 @@
                     android:scheme="${rqesDocRetrievalScheme}" />
 
             </intent-filter>
+        </activity>
 
+        <!-- GRNET fork: a request through the Digital Credentials API opens as a sheet over the
+             page that made it, not the whole wallet. Not in recents: it is part of the
+             browser's task, and finishes when the request does. In portrait, as the wallet is;
+             where Android rotates it anyway, the activity is kept, not recreated, so that the
+             device's prompt over it stays. -->
+        <activity
+            android:name=".ui.DcApiActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.EUDIWallet.Sheet">
             <intent-filter> <!--Required for DCAPI -->
                 <action android:name="androidx.credentials.registry.provider.action.GET_CREDENTIAL" />
                 <action android:name="androidx.identitycredentials.action.GET_CREDENTIALS" />

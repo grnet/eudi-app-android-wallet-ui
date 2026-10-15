@@ -74,6 +74,8 @@ const val mockedPidId = "000001"
 const val mockedMdlId = "000002"
 const val mockedSdJwtPidId = "000003"
 const val mockedPidDocName = "EU PID"
+// GRNET fork: a PID's name where it is requested or shared, whatever its format.
+const val mockedPidSharedName = "Person Identification Data"
 const val mockedMdlDocName = "mDL"
 const val mockedAgeVerificationDocName = "Age Verification"
 const val mockedPhotoIdDocName = "Photo ID"

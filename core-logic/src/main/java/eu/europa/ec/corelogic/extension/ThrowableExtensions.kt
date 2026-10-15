@@ -55,3 +55,14 @@ fun Throwable.toUntrustedIssuerReasonOrNull(): UntrustedIssuerReasonDomain? {
     }
     return null
 }
+
+/**
+ * GRNET fork: whether this failure is a request that has expired: its signed request object (JAR)
+ * is past its `exp`. The OpenID4VP library reports that as an invalid request object,
+ * "InvalidJarJwt(cause=Invalid signature Expired JWT)", which says nothing to the user. Matched on
+ * the rendered failure and its causes, as the library's reason is a string, not a type.
+ */
+fun Throwable.isExpiredRequest(): Boolean =
+    generateSequence(this) { it.cause }.any { it.toString().contains(EXPIRED_JWT, ignoreCase = true) }
+
+private const val EXPIRED_JWT = "Expired JWT"

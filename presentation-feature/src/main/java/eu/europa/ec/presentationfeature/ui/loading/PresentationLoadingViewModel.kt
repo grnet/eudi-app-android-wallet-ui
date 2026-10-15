@@ -180,7 +180,7 @@ class PresentationLoadingViewModel(
 
     private fun openAuthenticationPrompt(
         context: Context,
-        popEffect: Effect,
+        popEffect: Effect.Navigation,
         authenticationDataList: List<AuthenticationData>,
         sendRequestedDocumentsAction: () -> Unit,
         index: Int = 0,
@@ -211,6 +211,7 @@ class PresentationLoadingViewModel(
                     viewModelScope.launch {
                         authenticationData.onAuthenticationSuccess()
                         if (isFinalAuthentication) {
+                            setState { copy(isAuthenticated = true) }
                             sendRequestedDocumentsAction()
                         } else {
                             delay(500.milliseconds)
@@ -224,10 +225,10 @@ class PresentationLoadingViewModel(
                         }
                     }
                 },
+                // GRNET fork: back to the request, with its buttons, whatever ended the prompt,
+                // even the activity's recreation, which ends it and the screen together.
                 onAuthenticationError = {
-                    viewModelScope.launch {
-                        setEffect { popEffect }
-                    }
+                    navigateWhenShown(popEffect)
                 },
                 onAuthenticated = authenticationData.onAuthenticated,
             )

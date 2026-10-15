@@ -103,6 +103,10 @@ object StringResourceProviderMocker {
         whenever(resourceProvider.getString(R.string.request_collapsed_supporting_text))
             .thenReturn(mockedRequestCollapsedSupportingText)
 
+        // GRNET fork: a PID's name where it is requested or shared.
+        whenever(resourceProvider.getString(R.string.documents_screen_pid_group_title))
+            .thenReturn(mockedPidSharedName)
+
         whenever(resourceProvider.getLocale())
             .thenReturn(mockedDefaultLocale)
     }

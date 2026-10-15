@@ -17,6 +17,7 @@
 package eu.europa.ec.commonfeature.ui.request.transformer
 
 import eu.europa.ec.businesslogic.provider.UuidProvider
+import eu.europa.ec.commonfeature.extension.nameWhenShared
 import eu.europa.ec.commonfeature.extension.toExpandableListItems
 import eu.europa.ec.commonfeature.extension.toSelectiveExpandableListItems
 import eu.europa.ec.commonfeature.ui.request.model.DocumentFormatDomain
@@ -158,7 +159,7 @@ object RequestTransformer {
         if (domainClaims.isEmpty()) return null
 
         return DocumentPayloadDomain(
-            docName = storageDocument.name,
+            docName = storageDocument.nameWhenShared(resourceProvider),
             docId = storageDocument.id,
             docFormatDomain = DocumentFormatDomain.getFormat(format = storageDocument.format),
             docClaimsDomain = domainClaims,
