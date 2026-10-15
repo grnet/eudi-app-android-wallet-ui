@@ -172,25 +172,36 @@ another only if its version code is not lower.
 `.github/workflows/apk-build.yml` builds the `devDebug` APK, debuggable and not
 minified, so stack traces from users' phones are readable. With
 `-PsignDebugWithReleaseKey=true` it is signed with GRNET's keystore, like a
-release, so each APK installs over the last. Only
-`grnet` and `v*` tags are published, so the releases page holds nothing but
-builds meant for use:
+release. It publishes two kinds of release:
 
-- a push to `grnet`, which is what merging a pull request is, replaces the
-  release `latest-grnet`
-- a `v*` tag makes a permanent release
-- a manual run on any other branch attaches the APK to the run, under the
-  run's artifacts, for testing a branch before it is merged. Artifacts need a
-  GitHub login and are kept 90 days.
+- `latest`, "EUDI Wallet GR, latest": the HEAD of `grnet`, rebuilt when a
+  pull request is merged into `grnet`, not on every push. Always the release
+  marked Latest, so this link is always the build to install:
+  `https://github.com/grnet/eudi-app-android-wallet-ui/releases/latest/download/eudi-wallet-gr.apk`
+- `preview-<branch>`, "EUDI Wallet GR, preview of <branch>": the HEAD of any
+  other branch, built on demand, for partners to try a branch that is not
+  merged. A pre-release, never Latest; a new run on the same branch replaces
+  it, so its link stays the same, e.g.
+  `https://github.com/grnet/eudi-app-android-wallet-ui/releases/download/preview-feat-direct-to-fingerprint/eudi-wallet-gr.apk`.
+  Its version name ends in `-preview`.
 
-The release marked Latest is `latest-grnet` until the first `v*` tag; after
-that it is the newest tag. So this link is always the build to install:
-`https://github.com/grnet/eudi-app-android-wallet-ui/releases/latest/download/eudi-wallet-gr.apk`
+Both are built by hand from Actions → APK build → Run workflow, keeping "Use
+workflow from" on `grnet` and naming the branch to build: `grnet` rebuilds
+`latest`, any other publishes its preview. Or:
+
+    gh -R grnet/eudi-app-android-wallet-ui workflow run apk-build.yml -f branch=feat/direct-to-fingerprint
+
+A `v*` tag still makes a permanent release, but not the Latest one.
 
 Each release carries `eudi-wallet-gr.apk`, its SHA-256, and in its notes the
-commit, the endpoints it was built for, the wallet-core version and where it
-came from, and the signing certificate. The version code is the workflow's run
-number, and the version name is `<year>.<month>.<run>-<commit>`.
+commit and branch it was built from, the endpoints it was built for, the
+wallet-core version and where it came from, and the signing certificate. The
+version code is the workflow's run number, and the version name is
+`<year>.<month>.<run>-<commit>`. All of them come from the one workflow, so
+the version code rises across them and each APK installs over the one before,
+whichever it was, keeping the wallet's documents; but not over a newer one,
+so a preview built before the latest `latest` is built again to install over
+it.
 
 The workflow needs these repository settings:
 

@@ -1,26 +1,39 @@
 # GRNET fork: build the signed dev-flavour APK and publish it as a GitHub
 # Release. See .github/README.md, "Releases".
 #
-# Only grnet and v* tags are published. A push to grnet, which is what merging
-# a pull request is, replaces the release latest-grnet; a v* tag makes a
-# permanent one. A manual run on any other branch attaches the APK to the run
-# instead, so work in progress never reaches the releases page.
+# - latest: grnet's HEAD, rebuilt when a pull request is merged into grnet, or
+#   by hand with the branch grnet. Always the release marked Latest.
+# - preview-<branch>: the HEAD of any other branch, built by hand, for others to
+#   try a branch that is not merged. A pre-release, never Latest; a new run on
+#   the same branch replaces it.
+# - a v* tag: a permanent release, not Latest either.
+#
+# One workflow for all of them: the version code is its run number, so it rises
+# across them, and each APK installs over the one before, whichever it was.
 
 name: APK build
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - grnet
-    tags:
-      - 'v*'
     paths-ignore:
       - '**.md'
       - '.gitignore'
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build: grnet rebuilds latest; any other publishes a preview of it'
+        required: true
+        default: grnet
+        type: string
 
 concurrency:
-  group: apk-${{ github.ref }}
+  group: apk-${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.event_name == 'pull_request' && 'grnet' || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -29,14 +42,45 @@ env:
 jobs:
   build:
     name: Build and publish
+    # A pull request closed without merging builds nothing.
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
       contents: write
 
     steps:
+      # What is built, and released as what.
+      - name: Choose the release
+        id: release
+        env:
+          EVENT: ${{ github.event_name }}
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT" == "push" ]]; then
+            kind=tag ref="$GITHUB_REF" source="tag $GITHUB_REF_NAME" tag="$GITHUB_REF_NAME"
+            title="EUDI Wallet GR $GITHUB_REF_NAME" suffix=""
+          elif [[ "$EVENT" == "pull_request" || "$BRANCH" == "grnet" ]]; then
+            kind=latest ref=grnet source=grnet tag=latest
+            title="EUDI Wallet GR, latest" suffix=""
+          else
+            git check-ref-format --branch "$BRANCH" > /dev/null || {
+              echo "::error::not a branch name: $BRANCH"; exit 1; }
+            kind=preview ref="$BRANCH" source="$BRANCH"
+            tag="preview-$(printf '%s' "$BRANCH" | tr -c 'A-Za-z0-9._-' '-')"
+            title="EUDI Wallet GR, preview of $BRANCH" suffix="-preview"
+          fi
+          {
+            echo "kind=$kind"; echo "ref=$ref"; echo "source=$source"
+            echo "tag=$tag"; echo "title=$title"; echo "suffix=$suffix"
+          } >> "$GITHUB_OUTPUT"
+          echo "$kind release $tag from $source"
+
       - name: Check out code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.ref }}
 
       - name: Check secrets and variables
         env:
@@ -68,15 +112,21 @@ jobs:
         run: printf '%s' "$ANDROID_KEYSTORE_B64" | base64 -d > sign
 
       # versionCode rises with every run, so each APK installs over the last.
-      # The version name is written here, not committed.
+      # The version name is written here, not committed; a preview's ends in
+      # -preview. The commit is the one checked out, not the one the workflow
+      # ran from.
       - name: Set the version
         id: version
+        env:
+          SUFFIX: ${{ steps.release.outputs.suffix }}
         run: |
           set -euo pipefail
-          name="$(date -u +%Y.%m).${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}"
+          sha="$(git rev-parse HEAD)"
+          name="$(date -u +%Y.%m).${GITHUB_RUN_NUMBER}-${sha::7}${SUFFIX}"
           echo "VERSION_NAME=${name}" > version.properties
           echo "name=${name}" >> "$GITHUB_OUTPUT"
           echo "code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
           echo "version ${name}, code ${GITHUB_RUN_NUMBER}"
 
       # Resolved before the build, with the GRNET artifacts dropped from the
@@ -129,44 +179,44 @@ jobs:
           echo "cert=${cert}" >> "$GITHUB_OUTPUT"
           sha256sum "$APK_NAME" > "$APK_NAME.sha256"
 
-      - name: Attach the APK to the run
-        if: github.ref_type != 'tag' && github.ref_name != 'grnet'
-        uses: actions/upload-artifact@v4
-        with:
-          name: eudi-wallet-gr-${{ steps.version.outputs.name }}
-          path: |
-            ${{ env.APK_NAME }}
-            ${{ env.APK_NAME }}.sha256
-
       - name: Publish the release
-        if: github.ref_type == 'tag' || github.ref_name == 'grnet'
         env:
           GH_TOKEN: ${{ github.token }}
+          KIND: ${{ steps.release.outputs.kind }}
+          TAG: ${{ steps.release.outputs.tag }}
+          TITLE: ${{ steps.release.outputs.title }}
+          SOURCE: ${{ steps.release.outputs.source }}
+          SHA: ${{ steps.version.outputs.sha }}
         run: |
           set -euo pipefail
           notes=$(printf '%s\n' \
             "EUDI Wallet GR, dev flavour, version ${{ steps.version.outputs.name }} (code ${{ steps.version.outputs.code }})." \
             "" \
-            "Built from ${GITHUB_SHA} on ${GITHUB_REF_NAME}." \
+            "Built from ${SHA} on ${SOURCE}." \
             "Issuers: ${{ vars.ISSUER_URLS }}" \
             "Wallet provider: ${{ vars.WALLET_PROVIDER_URL }}" \
             "${{ steps.walletcore.outputs.line }}" \
             "Signing certificate SHA-256: ${{ steps.apk.outputs.cert }}")
-
-          # A tag is a deliberate release, so it becomes Latest. latest-grnet is
-          # Latest only until the first v* tag exists.
-          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            gh release create "$GITHUB_REF_NAME" "$APK_NAME" "$APK_NAME.sha256" \
-              --title "EUDI Wallet GR ${GITHUB_REF_NAME}" --notes "$notes" --verify-tag --latest
-          else
-            tag="latest-grnet"
-            latest=true
-            if gh release list --limit 100 --json tagName -q '.[].tagName' | grep -q '^v'; then
-              latest=false
-            fi
-            gh release delete "$tag" --cleanup-tag --yes 2>/dev/null || true
-            gh release create "$tag" "$APK_NAME" "$APK_NAME.sha256" \
-              --target "$GITHUB_SHA" --latest="$latest" \
-              --title "EUDI Wallet GR, latest grnet" --notes "$notes"
+          if [[ "$KIND" == "preview" ]]; then
+            notes=$(printf '%s\n\n%s' \
+              "A preview of the branch ${SOURCE}, to try it out: not merged into grnet. A new build of the branch replaces it." \
+              "$notes")
           fi
-          echo "https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/${APK_NAME}"
+
+          case "$KIND" in
+            tag)
+              gh release create "$TAG" "$APK_NAME" "$APK_NAME.sha256" \
+                --title "$TITLE" --notes "$notes" --verify-tag --latest=false
+              ;;
+            latest)
+              gh release delete "$TAG" --cleanup-tag --yes 2>/dev/null || true
+              gh release create "$TAG" "$APK_NAME" "$APK_NAME.sha256" \
+                --target "$SHA" --title "$TITLE" --notes "$notes" --latest
+              ;;
+            preview)
+              gh release delete "$TAG" --cleanup-tag --yes 2>/dev/null || true
+              gh release create "$TAG" "$APK_NAME" "$APK_NAME.sha256" \
+                --target "$SHA" --title "$TITLE" --notes "$notes" --prerelease --latest=false
+              ;;
+          esac
+          echo "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${APK_NAME}"
