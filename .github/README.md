@@ -122,6 +122,11 @@ hidden until the user authenticates to approve.
 - In the sheet the request screen has a close button instead of back. A tap on
   the page cancels the request while it is shown; once approved, only the
   result screen's Close finishes, so the response is not lost.
+- A request that fails, as one past its expiry does ("This request has
+  expired"), offers Close instead of Try again: a browser's request arrives
+  once, in the intent, so trying again fails the same way. Close ends it, as
+  the close button does, and the page can make a new one. In the wallet's own
+  window, Try again stays.
 - A payment whose card key requires the user says above Pay how it will be
   approved: "You will confirm with your fingerprint or screen lock." This is
   in the wallet's own window too.

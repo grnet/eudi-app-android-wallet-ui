@@ -62,18 +62,23 @@ internal fun ContentError(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = stringResource(id = R.string.generic_error_button_retry)
+                    text = config.retryText ?: stringResource(id = R.string.generic_error_button_retry)
                 )
             }
         }
     }
 }
 
+/**
+ * @property retryText GRNET fork: the label of the button that runs [onRetry], instead of "Try
+ * again", for an error that a retry cannot resolve and whose button does something else.
+ */
 data class ContentErrorConfig(
     val errorTitle: String? = null,
     val errorSubTitle: String? = null,
     val onCancel: () -> Unit,
-    val onRetry: (() -> Unit)? = null
+    val onRetry: (() -> Unit)? = null,
+    val retryText: String? = null,
 )
 
 @ThemeModePreviews

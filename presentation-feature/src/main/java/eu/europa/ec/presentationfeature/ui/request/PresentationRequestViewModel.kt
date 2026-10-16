@@ -40,6 +40,7 @@ import eu.europa.ec.uilogic.config.NavigationType
 import eu.europa.ec.uilogic.navigation.CommonScreens
 import eu.europa.ec.uilogic.navigation.PresentationScreens
 import eu.europa.ec.uilogic.navigation.helper.IntentAction
+import eu.europa.ec.uilogic.navigation.helper.IntentType
 import eu.europa.ec.uilogic.navigation.helper.generateComposableArguments
 import eu.europa.ec.uilogic.navigation.helper.generateComposableNavigationLink
 import eu.europa.ec.uilogic.serializer.UiSerializer
@@ -151,11 +152,26 @@ class PresentationRequestViewModel(
             interactor.getRequestDocuments().collect { response ->
                 when (response) {
                     is PresentationRequestInteractorPartialState.Failure -> {
+                        // GRNET fork: a request from a browser comes once, in the intent that
+                        // started the wallet, so trying again processes the same request and
+                        // fails the same way (an expired one, say). Its error offers Close
+                        // instead, which ends the request as the close button does; a new
+                        // request has to come from the page.
+                        val fromBrowser = viewState.value.intentAction?.type == IntentType.DC_API
                         setState {
                             copy(
                                 isLoading = false,
                                 error = ContentErrorConfig(
-                                    onRetry = { setEvent(Event.DoWork) },
+                                    onRetry = if (fromBrowser) {
+                                        { setEvent(Event.OnBack) }
+                                    } else {
+                                        { setEvent(Event.DoWork) }
+                                    },
+                                    retryText = if (fromBrowser) {
+                                        resourceProvider.getString(R.string.generic_close)
+                                    } else {
+                                        null
+                                    },
                                     errorSubTitle = response.error,
                                     onCancel = { setEvent(Event.OnBack) }
                                 )
