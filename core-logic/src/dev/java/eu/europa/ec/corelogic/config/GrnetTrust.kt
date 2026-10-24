@@ -48,6 +48,7 @@ import java.security.cert.CertificateFactory
 import java.security.cert.TrustAnchor
 import java.security.cert.X509Certificate
 import java.security.interfaces.ECPublicKey
+import java.security.interfaces.RSAPublicKey
 import java.util.Base64
 import kotlin.time.Duration.Companion.minutes
 
@@ -78,6 +79,7 @@ internal class GrnetTrust(
     context: Context,
     httpClient: HttpClient,
     loteLocations: SupportedLists<Uri>,
+    private val withGrnetAnchors: Boolean = true,
 ) {
 
     private val disposables = DisposableContainer()
@@ -119,9 +121,16 @@ internal class GrnetTrust(
             )
         }
 
-    /** The EU lists, then GRNET's anchors for the contexts it has any for. */
+    /**
+     * The EU lists, then GRNET's anchors for the contexts it has any for; the lists alone
+     * without [withGrnetAnchors].
+     */
     val source: IsChainTrustedForEUDIW<List<X509Certificate>, TrustAnchor> =
-        euLists.recoverWith { context, _ -> grnet.takeIf { it.contains(context) } }
+        if (withGrnetAnchors) {
+            euLists.recoverWith { context, _ -> grnet.takeIf { it.contains(context) } }
+        } else {
+            euLists
+        }
 }
 
 private fun Context.trustAnchor(rawRes: Int): TrustAnchor =
@@ -151,30 +160,41 @@ private fun SupportedLists<LotEMeta<VerificationContext>>.withoutEndEntityProfil
 
 /**
  * What wallet-core's internal `LoteJwtVerifier` checks, and no more: the list's JWS signature
- * against the public key of the `x5c` leaf. Not whether that leaf is trusted. The lists are
- * all ES256; an EC signature arrives as r||s and Java wants it DER-encoded.
+ * against the public key of the `x5c` leaf. Not whether that leaf is trusted. Upstream's lists
+ * are ES256, whose signature arrives as r||s while Java wants it DER-encoded; the Commission's
+ * are RS512, an RSA signature Java takes as it is.
  */
 internal object LoteSignatureVerifier : VerifyJwtSignature {
     override suspend fun invoke(jwt: String): VerifyJwtSignature.Outcome = runCatching {
         val (header, payload, signature) = jwt.split('.').also { require(it.size == 3) }
         val headerJson = Json.parseToJsonElement(String(base64Url(header))).jsonObject
-        val digest = when (val alg = headerJson.getValue("alg").jsonPrimitive.content) {
+        val alg = headerJson.getValue("alg").jsonPrimitive.content
+        val digest = when (alg) {
             "ES256" -> "SHA256withECDSA"
             "ES384" -> "SHA384withECDSA"
             "ES512" -> "SHA512withECDSA"
+            "RS256" -> "SHA256withRSA"
+            "RS384" -> "SHA384withRSA"
+            "RS512" -> "SHA512withRSA"
             else -> error("unsupported alg $alg")
         }
+        val ec = alg.startsWith("ES")
         // x5c is plain base64, unlike the rest of a JWS (RFC 7515 §4.1.6).
         val leaf = CertificateFactory.getInstance("X.509").generateCertificate(
             Base64.getDecoder()
                 .decode(headerJson.getValue("x5c").jsonArray[0].jsonPrimitive.content)
                 .inputStream()
         )
-        require(leaf.publicKey is ECPublicKey) { "x5c leaf key is not EC" }
+        if (ec) {
+            require(leaf.publicKey is ECPublicKey) { "x5c leaf key is not EC" }
+        } else {
+            require(leaf.publicKey is RSAPublicKey) { "x5c leaf key is not RSA" }
+        }
         val verified = Signature.getInstance(digest).run {
             initVerify(leaf.publicKey)
             update("$header.$payload".toByteArray(Charsets.US_ASCII))
-            verify(rawToDer(base64Url(signature)))
+            val bytes = base64Url(signature)
+            verify(if (ec) rawToDer(bytes) else bytes)
         }
         require(verified) { "LoTE JWT signature verification failed" }
         VerifyJwtSignature.Outcome.Verified(jwt)

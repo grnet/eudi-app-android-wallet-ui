@@ -119,6 +119,26 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                             "https://ec.dev.issuer.eudiw.dev,https://dev.issuer-backend.eudiw.dev"
                         )
                     )
+                    // The trusted lists: "ri", upstream's (the default), or "ec", the
+                    // Commission's for the Launchpad testbed. emptyTrustLists, with "ec"
+                    // only: any of pid,wrpac,wrprc, comma-separated, read from the list's
+                    // empty twin instead, for the testbed's negative cases.
+                    addConfigField(
+                        "TRUST_LISTS",
+                        providers.gradleProperty("trustLists").getOrElse("ri")
+                    )
+                    addConfigField(
+                        "EMPTY_TRUST_LISTS",
+                        providers.gradleProperty("emptyTrustLists").getOrElse("")
+                    )
+                    // Whether GRNET's own CAs back up the lists (GrnetTrust). On by
+                    // default, for the payment demo; off for the testbed's negative cases.
+                    addConfigField(
+                        "GRNET_TRUST_ANCHORS",
+                        providers.gradleProperty("grnetTrustAnchors")
+                            .map { it.toBoolean() }
+                            .getOrElse(true)
+                    )
                     addConfigField(
                         "WALLET_PROVIDER_URL",
                         providers.gradleProperty("walletProviderUrl").getOrElse(

@@ -61,12 +61,31 @@ internal class WalletCoreConfigImpl(
 
     // GRNET fork: shared by configureEtsiTrust and GrnetTrust, which rebuilds the same
     // pipeline to add GRNET's anchors.
-    private val loteLocations = SupportedLists(
-        pidProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/PIDProviders.jwt"),
-        wrpacProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/WRPACProviders.jwt"),
-        wrprcProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/WRPRCProviders.jwt"),
-        pubEaaProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/PubEAAProviders.jwt"),
-    )
+    // Which lists, from the trustLists and emptyTrustLists build arguments (see
+    // AndroidLibraryConventionPlugin): upstream's by default, or the Commission's
+    // for the Launchpad testbed, where any of pid, wrpac and wrprc can be swapped
+    // for its empty twin for the negative cases.
+    private val loteLocations = when (BuildConfig.TRUST_LISTS) {
+        "ec" -> {
+            val empty = BuildConfig.EMPTY_TRUST_LISTS.split(",").map { it.trim() }
+            fun ec(name: String) = Uri(
+                "https://development.trust.tech.ec.europa.eu/lists/eudiw/" +
+                        if (name.substringBefore('-') in empty) "${name}_empty.json" else "$name.json"
+            )
+            SupportedLists(
+                pidProviders = ec("pid-providers"),
+                wrpacProviders = ec("wrpac-providers"),
+                wrprcProviders = ec("wrprc-providers"),
+            )
+        }
+
+        else -> SupportedLists(
+            pidProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/PIDProviders.jwt"),
+            wrpacProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/WRPACProviders.jwt"),
+            wrprcProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/WRPRCProviders.jwt"),
+            pubEaaProviders = Uri("https://trustedlist.serviceproviders.eudiw.dev/LOTE/json/PubEAAProviders.jwt"),
+        )
+    }
 
     private val classifications = AttestationClassifications(
         pids = AttestationIdentifierPredicate.any(
@@ -88,6 +107,7 @@ internal class WalletCoreConfigImpl(
             context = get<Context>(),
             httpClient = get<HttpClient>(),
             loteLocations = loteLocations,
+            withGrnetAnchors = BuildConfig.GRNET_TRUST_ANCHORS,
         )
     }
 
