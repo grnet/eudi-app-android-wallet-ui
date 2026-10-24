@@ -31,6 +31,26 @@ on:
         required: true
         default: grnet
         type: string
+      # The trust build arguments of AndroidLibraryConventionPlugin. The defaults
+      # are the payment demo's; a merged pull request always builds with them.
+      trust_lists:
+        description: 'Trusted lists: ri (upstream''s) or ec (the Commission''s, for the Launchpad testbed)'
+        required: true
+        default: ri
+        type: choice
+        options:
+          - ri
+          - ec
+      empty_trust_lists:
+        description: 'With ec only: lists read from their empty twin, any of pid,wrpac,wrprc (negative tests)'
+        required: false
+        default: ''
+        type: string
+      grnet_trust_anchors:
+        description: 'GRNET''s own CAs back up the lists (off for negative tests)'
+        required: true
+        default: true
+        type: boolean
 
 concurrency:
   group: apk-${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.event_name == 'pull_request' && 'grnet' || github.ref }}
@@ -76,6 +96,39 @@ jobs:
             echo "tag=$tag"; echo "title=$title"; echo "suffix=$suffix"
           } >> "$GITHUB_OUTPUT"
           echo "$kind release $tag from $source"
+
+      # The trust settings. Empty inputs (a merged pull request, a tag) get the
+      # defaults; latest is always built with them, so the payment demo keeps
+      # working whatever is typed in.
+      - name: Choose the trust settings
+        id: trust
+        env:
+          KIND: ${{ steps.release.outputs.kind }}
+          TRUST_LISTS: ${{ inputs.trust_lists }}
+          EMPTY_TRUST_LISTS: ${{ inputs.empty_trust_lists }}
+          GRNET_TRUST_ANCHORS: ${{ inputs.grnet_trust_anchors }}
+        run: |
+          set -euo pipefail
+          lists="${TRUST_LISTS:-ri}" empty="${EMPTY_TRUST_LISTS:-}" anchors="${GRNET_TRUST_ANCHORS:-true}"
+          if [[ "$KIND" == "latest" && ( "$lists" != ri || -n "$empty" || "$anchors" != true ) ]]; then
+            echo "::error::latest is always built with the default trust settings; build a preview of another branch instead"
+            exit 1
+          fi
+          empty="$(printf '%s' "$empty" | tr -d ' ')"
+          if [[ -n "$empty" ]]; then
+            [[ "$lists" == ec ]] || { echo "::error::empty_trust_lists needs trust_lists=ec"; exit 1; }
+            [[ "$empty" =~ ^(pid|wrpac|wrprc)(,(pid|wrpac|wrprc))*$ ]] || {
+              echo "::error::empty_trust_lists: any of pid,wrpac,wrprc, comma-separated"; exit 1; }
+          fi
+          case "$lists" in
+            ri) line="Trusted lists: upstream's" ;;
+            ec) line="Trusted lists: the Commission's (Launchpad testbed)${empty:+, empty: $empty}" ;;
+          esac
+          [[ "$anchors" == true ]] && line="$line, GRNET's CAs as fallback" || line="$line, no GRNET fallback"
+          {
+            echo "lists=$lists"; echo "empty=$empty"; echo "anchors=$anchors"; echo "line=$line"
+          } >> "$GITHUB_OUTPUT"
+          echo "$line"
 
       - name: Check out code
         uses: actions/checkout@v4
@@ -164,7 +217,10 @@ jobs:
             -PsignDebugWithReleaseKey=true \
             -PversionCode=${{ steps.version.outputs.code }} \
             -PissuerUrls="${{ vars.ISSUER_URLS }}" \
-            -PwalletProviderUrl="${{ vars.WALLET_PROVIDER_URL }}"
+            -PwalletProviderUrl="${{ vars.WALLET_PROVIDER_URL }}" \
+            -PtrustLists="${{ steps.trust.outputs.lists }}" \
+            -PemptyTrustLists="${{ steps.trust.outputs.empty }}" \
+            -PgrnetTrustAnchors="${{ steps.trust.outputs.anchors }}"
 
       - name: Check the signature
         id: apk
@@ -195,6 +251,7 @@ jobs:
             "Built from ${SHA} on ${SOURCE}." \
             "Issuers: ${{ vars.ISSUER_URLS }}" \
             "Wallet provider: ${{ vars.WALLET_PROVIDER_URL }}" \
+            "${{ steps.trust.outputs.line }}" \
             "${{ steps.walletcore.outputs.line }}" \
             "Signing certificate SHA-256: ${{ steps.apk.outputs.cert }}")
           if [[ "$KIND" == "preview" ]]; then
