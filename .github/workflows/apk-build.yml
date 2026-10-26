@@ -51,6 +51,11 @@ on:
         required: true
         default: true
         type: boolean
+      registration_check:
+        description: '"Check Registration Certificates" starts on (the testbed''s PRE-09 to PRE-14)'
+        required: true
+        default: false
+        type: boolean
 
 concurrency:
   group: apk-${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.event_name == 'pull_request' && 'grnet' || github.ref }}
@@ -107,10 +112,12 @@ jobs:
           TRUST_LISTS: ${{ inputs.trust_lists }}
           EMPTY_TRUST_LISTS: ${{ inputs.empty_trust_lists }}
           GRNET_TRUST_ANCHORS: ${{ inputs.grnet_trust_anchors }}
+          REGISTRATION_CHECK: ${{ inputs.registration_check }}
         run: |
           set -euo pipefail
           lists="${TRUST_LISTS:-ri}" empty="${EMPTY_TRUST_LISTS:-}" anchors="${GRNET_TRUST_ANCHORS:-true}"
-          if [[ "$KIND" == "latest" && ( "$lists" != ri || -n "$empty" || "$anchors" != true ) ]]; then
+          regcheck="${REGISTRATION_CHECK:-false}"
+          if [[ "$KIND" == "latest" && ( "$lists" != ri || -n "$empty" || "$anchors" != true || "$regcheck" != false ) ]]; then
             echo "::error::latest is always built with the default trust settings; build a preview of another branch instead"
             exit 1
           fi
@@ -125,8 +132,9 @@ jobs:
             ec) line="Trusted lists: the Commission's (Launchpad testbed)${empty:+, empty: $empty}" ;;
           esac
           [[ "$anchors" == true ]] && line="$line, GRNET's CAs as fallback" || line="$line, no GRNET fallback"
+          [[ "$regcheck" == true ]] && line="$line; registration certificates checked by default"
           {
-            echo "lists=$lists"; echo "empty=$empty"; echo "anchors=$anchors"; echo "line=$line"
+            echo "lists=$lists"; echo "empty=$empty"; echo "anchors=$anchors"; echo "regcheck=$regcheck"; echo "line=$line"
           } >> "$GITHUB_OUTPUT"
           echo "$line"
 
@@ -220,7 +228,8 @@ jobs:
             -PwalletProviderUrl="${{ vars.WALLET_PROVIDER_URL }}" \
             -PtrustLists="${{ steps.trust.outputs.lists }}" \
             -PemptyTrustLists="${{ steps.trust.outputs.empty }}" \
-            -PgrnetTrustAnchors="${{ steps.trust.outputs.anchors }}"
+            -PgrnetTrustAnchors="${{ steps.trust.outputs.anchors }}" \
+            -PregistrationCheckDefault="${{ steps.trust.outputs.regcheck }}"
 
       - name: Check the signature
         id: apk

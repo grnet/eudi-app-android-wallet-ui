@@ -149,6 +149,16 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                             .map { it.toBoolean() }
                             .getOrElse(true)
                     )
+                    // Whether "Check Registration Certificates" starts on, until the user
+                    // changes it in Settings. Off by default, as upstream, for the payment
+                    // demo; on for the Launchpad testbed, whose PRE-09 to PRE-14 expect
+                    // the wallet to warn about registration certificates.
+                    addConfigField(
+                        "REGISTRATION_CHECK_DEFAULT",
+                        providers.gradleProperty("registrationCheckDefault")
+                            .map { it.toBoolean() }
+                            .getOrElse(false)
+                    )
                     addConfigField(
                         "WALLET_PROVIDER_URL",
                         providers.gradleProperty("walletProviderUrl").getOrElse(

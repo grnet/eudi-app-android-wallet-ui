@@ -35,6 +35,7 @@ import com.google.crypto.tink.KeyTemplates
 import com.google.crypto.tink.RegistryConfiguration
 import com.google.crypto.tink.aead.AeadConfig
 import com.google.crypto.tink.integration.android.AndroidKeysetManager
+import eu.europa.ec.businesslogic.BuildConfig
 import eu.europa.ec.businesslogic.extension.decodeFromBase64
 import eu.europa.ec.businesslogic.extension.encodeToBase64String
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
@@ -216,8 +217,9 @@ class PrefKeysImpl(
         prefsController.setBool("ShowBatchIssuanceCounter", value)
     }
 
+    // GRNET fork: the default comes from the registrationCheckDefault build argument.
     override suspend fun getRegistrationCheckEnabled(): Boolean {
-        return prefsController.getBool("RegistrationCheckEnabled", false)
+        return prefsController.getBool("RegistrationCheckEnabled", BuildConfig.REGISTRATION_CHECK_DEFAULT)
     }
 
     override suspend fun setRegistrationCheckEnabled(value: Boolean) {
