@@ -61,6 +61,14 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
             val credentialOfferHaipScheme = "haip-vci"
             val credentialOfferHaipHost = "*"
 
+            // GRNET fork: the schemes the EUDI Wallets Launchpad and itb.eudiw.dev
+            // put in their QR codes, for credential offers and OpenID4VP requests.
+            val euEaaOfferScheme = "eu-eaa-offer"
+            val euEaaOfferHost = "*"
+
+            val euEaapScheme = "eu-eaap"
+            val euEaapHost = "*"
+
             val openId4VciAuthorizationScheme = "eu.europa.ec.euidi"
             val openId4VciAuthorizationHost = "authorization"
 
@@ -95,6 +103,8 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                     addConfigField("HAIP_OPENID4VP_SCHEME", haipOpenId4VpScheme)
                     addConfigField("CREDENTIAL_OFFER_SCHEME", credentialOfferScheme)
                     addConfigField("CREDENTIAL_OFFER_HAIP_SCHEME", credentialOfferHaipScheme)
+                    addConfigField("EU_EAA_OFFER_SCHEME", euEaaOfferScheme)
+                    addConfigField("EU_EAAP_SCHEME", euEaapScheme)
                     addConfigField("ISSUE_AUTHORIZATION_SCHEME", openId4VciAuthorizationScheme)
                     addConfigField("ISSUE_AUTHORIZATION_HOST", openId4VciAuthorizationHost)
                     addConfigField(
@@ -139,12 +149,16 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                     manifestPlaceholders["openid4vpHost"] = openid4VpHost
                     manifestPlaceholders["haipOpenid4vpScheme"] = haipOpenId4VpScheme
                     manifestPlaceholders["haipOpenid4vpHost"] = haipOpenid4VpHost
+                    manifestPlaceholders["euEaapScheme"] = euEaapScheme
+                    manifestPlaceholders["euEaapHost"] = euEaapHost
 
                     // Manifest placeholders used for OpenId4VCI
                     manifestPlaceholders["credentialOfferHost"] = credentialOfferHost
                     manifestPlaceholders["credentialOfferScheme"] = credentialOfferScheme
                     manifestPlaceholders["credentialOfferHaipHost"] = credentialOfferHaipHost
                     manifestPlaceholders["credentialOfferHaipScheme"] = credentialOfferHaipScheme
+                    manifestPlaceholders["euEaaOfferHost"] = euEaaOfferHost
+                    manifestPlaceholders["euEaaOfferScheme"] = euEaaOfferScheme
 
                     // Manifest placeholders used for OpenId4VCI Authorization
                     manifestPlaceholders["openId4VciAuthorizationScheme"] =
