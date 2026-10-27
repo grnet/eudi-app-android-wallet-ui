@@ -68,6 +68,10 @@ import kotlin.time.Duration.Companion.minutes
  * - `webuild_trust_registry`, the WE BUILD Trust Registry root, for PIDs and for access
  *   certificates. GRNET's WE BUILD-onboarded certificate is a leaf under it, the one on the
  *   Commission's PID providers list, and signs the SD-JWT VC PIDs.
+ * - `grnet_pid_provider`, GRNET's PID provider certificate in the ETSI TS 119 412-6 profile
+ *   (WEBUILD/pki/etsi-profile), for PIDs. Self-signed, so its own anchor; the same key as the
+ *   WE BUILD-onboarded one, and the certificate the issuer signs SD-JWT VC PIDs with once the
+ *   Commission's PID providers list carries it.
  *
  * Revocation is not checked for either, as the dev flavour already does for the EU lists
  * (`relaxPkixRevocation`): Android's PKIX does not fetch a CRL from a certificate's
@@ -109,8 +113,9 @@ internal class GrnetTrust(
         run {
             val iaca = context.trustAnchor(R.raw.grnet_iaca)
             val webuild = context.trustAnchor(R.raw.webuild_trust_registry)
+            val pidProvider = context.trustAnchor(R.raw.grnet_pid_provider)
             val anchors: Map<VerificationContext, List<TrustAnchor>> = mapOf(
-                VerificationContext.PID to listOf(iaca, webuild),
+                VerificationContext.PID to listOf(iaca, webuild, pidProvider),
                 VerificationContext.WalletRelyingPartyAccessCertificate to listOf(iaca, webuild),
             )
             IsChainTrustedForContext(
