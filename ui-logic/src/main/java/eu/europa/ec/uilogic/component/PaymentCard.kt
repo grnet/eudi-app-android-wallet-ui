@@ -16,7 +16,9 @@
 
 package eu.europa.ec.uilogic.component
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color as AndroidColor
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -120,10 +122,37 @@ private const val CARD_ASPECT_RATIO = 85.60f / 53.98f
 /** The width of a card shown in a list row instead of an icon. */
 const val PAYMENT_CARD_THUMBNAIL_WIDTH = 56
 
+/** Dark grey, for the text over light card art: 13.6:1 on a white card, 5.5:1 on a gold one. */
+private val DARK_CARD_TEXT = Color(0xFF1F2937)
+
 private sealed interface CardArt {
     data object Loading : CardArt
     data object Missing : CardArt
-    data class Loaded(val bitmap: ImageBitmap) : CardArt
+    /** @property light the art is light where the text goes, so the text is dark. */
+    data class Loaded(val bitmap: ImageBitmap, val light: Boolean) : CardArt
+}
+
+/**
+ * Whether [art] is light where the card number and expiry are drawn (from 8% to 58% of its width,
+ * 50% to 85% of its height): the mean of its brightness there, on a small copy, over 0.6. The
+ * issuer's card choice page decides the same way.
+ */
+private fun isLightWhereTextGoes(art: Bitmap): Boolean {
+    val w = 64
+    val h = 40
+    val small = Bitmap.createScaledBitmap(art, w, h, true)
+    var sum = 0.0
+    var count = 0
+    for (y in (h * 0.5).toInt() until (h * 0.85).toInt()) {
+        for (x in (w * 0.08).toInt() until (w * 0.58).toInt()) {
+            val pixel = small.getPixel(x, y)
+            sum += 0.2126 * AndroidColor.red(pixel) + 0.7152 * AndroidColor.green(pixel) +
+                    0.0722 * AndroidColor.blue(pixel)
+            count++
+        }
+    }
+    if (small !== art) small.recycle()
+    return count > 0 && sum / count / 255 > 0.6
 }
 
 /**
@@ -148,7 +177,7 @@ fun PaymentCardFace(
         value = withContext(Dispatchers.IO) {
             CardArtStore(context).get(url)
                 ?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
-                ?.let { CardArt.Loaded(it.asImageBitmap()) }
+                ?.let { CardArt.Loaded(it.asImageBitmap(), light = isLightWhereTextGoes(it)) }
                 ?: CardArt.Missing
         }
     }
@@ -198,11 +227,13 @@ fun PaymentCardFace(
             }
         }
 
+        val light = (cardArt as? CardArt.Loaded)?.light == true
         if (showDetails && cardArt != CardArt.Loading) {
             card.lastFour?.let { lastFour ->
                 CardText(
                     text = "•••• •••• •••• $lastFour",
                     size = width * 0.062f,
+                    light = light,
                     monospace = true,
                     letterSpacing = 0.04f,
                     modifier = Modifier.offset(x = width * 0.08f, y = height * 0.51f),
@@ -213,22 +244,27 @@ fun PaymentCardFace(
                     CardText(
                         text = stringResource(R.string.payment_card_expiry_date).uppercase(),
                         size = width * 0.026f,
+                        light = light,
                         letterSpacing = 0.08f,
                         modifier = Modifier.alpha(0.8f),
                     )
-                    CardText(text = expiry, size = width * 0.046f, monospace = true)
+                    CardText(text = expiry, size = width * 0.046f, light = light, monospace = true)
                 }
             }
         }
     }
 }
 
-/** White text with a soft shadow, legible on light and dark card art alike. */
+/**
+ * The text over a card: white with a soft dark shadow, or on [light] card art (a white Standard
+ * card, a gold one) dark grey with a soft light one, so that it reads on either.
+ */
 @Composable
 private fun CardText(
     text: String,
     size: Dp,
     modifier: Modifier = Modifier,
+    light: Boolean = false,
     monospace: Boolean = false,
     letterSpacing: Float = 0f,
 ) {
@@ -240,15 +276,15 @@ private fun CardText(
         maxLines = 1,
         overflow = TextOverflow.Clip,
         style = TextStyle(
-            color = Color.White,
+            color = if (light) DARK_CARD_TEXT else Color.White,
             fontSize = fontSize,
             lineHeight = fontSize * 1.25f,
             fontFamily = if (monospace) FontFamily.Monospace else FontFamily.Default,
             letterSpacing = letterSpacing.em,
             shadow = Shadow(
-                color = Color.Black.copy(alpha = 0.5f),
+                color = if (light) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.5f),
                 offset = with(density) { Offset(0f, 1.dp.toPx()) },
-                blurRadius = with(density) { 2.dp.toPx() },
+                blurRadius = with(density) { (if (light) 1 else 2).dp.toPx() },
             ),
         ),
     )
