@@ -61,6 +61,14 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
             val credentialOfferHaipScheme = "haip-vci"
             val credentialOfferHaipHost = "*"
 
+            // GRNET fork: the schemes the Launchpad testbed and its participants use,
+            // for presentation requests and credential offers.
+            val eaapOpenId4VpScheme = "eu-eaap"
+            val eaapOpenid4VpHost = "*"
+
+            val credentialOfferEaaScheme = "eu-eaa-offer"
+            val credentialOfferEaaHost = "*"
+
             val openId4VciAuthorizationScheme = "eu.europa.ec.euidi"
             val openId4VciAuthorizationHost = "authorization"
 
@@ -95,6 +103,8 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                     addConfigField("HAIP_OPENID4VP_SCHEME", haipOpenId4VpScheme)
                     addConfigField("CREDENTIAL_OFFER_SCHEME", credentialOfferScheme)
                     addConfigField("CREDENTIAL_OFFER_HAIP_SCHEME", credentialOfferHaipScheme)
+                    addConfigField("EAAP_OPENID4VP_SCHEME", eaapOpenId4VpScheme)
+                    addConfigField("CREDENTIAL_OFFER_EAA_SCHEME", credentialOfferEaaScheme)
                     addConfigField("ISSUE_AUTHORIZATION_SCHEME", openId4VciAuthorizationScheme)
                     addConfigField("ISSUE_AUTHORIZATION_HOST", openId4VciAuthorizationHost)
                     addConfigField(
@@ -118,6 +128,36 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                         providers.gradleProperty("issuerUrls").getOrElse(
                             "https://ec.dev.issuer.eudiw.dev,https://dev.issuer-backend.eudiw.dev"
                         )
+                    )
+                    // The trusted lists: "ri", upstream's (the default), or "ec", the
+                    // Commission's for the Launchpad testbed. emptyTrustLists, with "ec"
+                    // only: any of pid,wrpac,wrprc, comma-separated, read from the list's
+                    // empty twin instead, for the testbed's negative cases.
+                    addConfigField(
+                        "TRUST_LISTS",
+                        providers.gradleProperty("trustLists").getOrElse("ri")
+                    )
+                    addConfigField(
+                        "EMPTY_TRUST_LISTS",
+                        providers.gradleProperty("emptyTrustLists").getOrElse("")
+                    )
+                    // Whether GRNET's own CAs back up the lists (GrnetTrust). On by
+                    // default, for the payment demo; off for the testbed's negative cases.
+                    addConfigField(
+                        "GRNET_TRUST_ANCHORS",
+                        providers.gradleProperty("grnetTrustAnchors")
+                            .map { it.toBoolean() }
+                            .getOrElse(true)
+                    )
+                    // Whether "Check Registration Certificates" starts on, until the user
+                    // changes it in Settings. Off by default, as upstream, for the payment
+                    // demo; on for the Launchpad testbed, whose PRE-09 to PRE-14 expect
+                    // the wallet to warn about registration certificates.
+                    addConfigField(
+                        "REGISTRATION_CHECK_DEFAULT",
+                        providers.gradleProperty("registrationCheckDefault")
+                            .map { it.toBoolean() }
+                            .getOrElse(false)
                     )
                     addConfigField(
                         "WALLET_PROVIDER_URL",
@@ -145,6 +185,11 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                     manifestPlaceholders["credentialOfferScheme"] = credentialOfferScheme
                     manifestPlaceholders["credentialOfferHaipHost"] = credentialOfferHaipHost
                     manifestPlaceholders["credentialOfferHaipScheme"] = credentialOfferHaipScheme
+
+                    manifestPlaceholders["eaapOpenid4vpScheme"] = eaapOpenId4VpScheme
+                    manifestPlaceholders["eaapOpenid4vpHost"] = eaapOpenid4VpHost
+                    manifestPlaceholders["credentialOfferEaaScheme"] = credentialOfferEaaScheme
+                    manifestPlaceholders["credentialOfferEaaHost"] = credentialOfferEaaHost
 
                     // Manifest placeholders used for OpenId4VCI Authorization
                     manifestPlaceholders["openId4VciAuthorizationScheme"] =
