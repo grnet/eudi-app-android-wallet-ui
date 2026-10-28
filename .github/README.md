@@ -266,7 +266,7 @@ key attestation validation is disabled. If it is enabled, it must list this
 build's package, `eu.europa.ec.euidi.grnet.dev`, and the SHA-256 digest of
 **our** signing certificate, not upstream's.
 
-**The wallet-core library is GRNET's release of it**, `0.31.0-grnet.4`, from
+**The wallet-core library is GRNET's release of it**, `0.31.0-grnet.6`, from
 the Maven repository of
 [grnet/eudi-lib-android-wallet-core](https://github.com/grnet/eudi-lib-android-wallet-core)
 on GitHub Pages. Its changes from upstream `0.31.0` are to the Android
@@ -275,7 +275,9 @@ ones come out speckled, and a TS12 payment shown as a payment, with the payee,
 the amount and the card, rather than the DPC as an identity document. The card
 is shown by its own name, last four digits and card art, which its issuer
 delivers with it as the WE BUILD DPC rulebook specifies, and the app reads the
-same card display and card art for its own screens. The
+same card display and card art for its own screens. The selector also offers
+a credential when a verifier asks for an array claim by element, as the
+reference verifier asks for a PID's `["nationalities", null]`. The
 fork's README lists them, and the fork exists so GRNET changes can ship as
 releases. `settings.gradle.kts` takes
 its three artifacts, in `*-grnet.N` versions, from that repository only, and
