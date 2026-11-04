@@ -16,6 +16,7 @@
 
 package eu.europa.ec.presentationfeature.ui.request
 
+import android.content.Intent
 import androidx.lifecycle.viewModelScope
 import eu.europa.ec.commonfeature.config.BiometricMode
 import eu.europa.ec.commonfeature.config.BiometricUiConfig
@@ -238,4 +239,12 @@ class PresentationRequestViewModel(
         interactor.stopPresentation()
         getOrNullKoinScope(viewState.value.presentationScopeId)?.close()
     }
+
+    // GRNET fork: the error the redirect flow posts to the verifier for an untrusted request
+    // signer (the OpenID4VP library maps Untrusted x5c to invalid_request_object), returned to
+    // the page instead, which can pass it on.
+    override fun verifierNotTrustedDcApiResult(): Intent? = interactor.dcApiErrorResult(
+        error = "invalid_request_object",
+        description = "The wallet does not trust the verifier's access certificate",
+    )
 }

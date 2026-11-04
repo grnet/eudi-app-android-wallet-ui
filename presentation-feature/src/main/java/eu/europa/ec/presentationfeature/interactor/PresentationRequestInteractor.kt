@@ -16,6 +16,7 @@
 
 package eu.europa.ec.presentationfeature.interactor
 
+import android.content.Intent
 import eu.europa.ec.businesslogic.extension.safeAsync
 import eu.europa.ec.businesslogic.provider.UuidProvider
 import eu.europa.ec.commonfeature.config.RequestUriConfig
@@ -55,6 +56,9 @@ interface PresentationRequestInteractor : ScopedPresentationInteractor {
     fun getRequestDocuments(): Flow<PresentationRequestInteractorPartialState>
     fun stopPresentation()
     fun updateRequestedDocuments(selectedCombination: RequestCombinationUi?)
+
+    /** GRNET fork: see [WalletCorePresentationController.dcApiErrorResult]. */
+    fun dcApiErrorResult(error: String, description: String): Intent?
 
     /** GRNET fork: see [WalletCorePresentationController.disclosedKeysRequireUserAuthentication]. */
     suspend fun disclosedKeysRequireUserAuthentication(): Boolean
@@ -163,6 +167,9 @@ class PresentationRequestInteractorImpl(
     override fun stopPresentation() {
         walletCorePresentationController.stopPresentation()
     }
+
+    override fun dcApiErrorResult(error: String, description: String): Intent? =
+        walletCorePresentationController.dcApiErrorResult(error, description)
 
     override fun updateRequestedDocuments(selectedCombination: RequestCombinationUi?) {
         val selections = selectedCombination?.let { safeSelectedCombinationUi ->

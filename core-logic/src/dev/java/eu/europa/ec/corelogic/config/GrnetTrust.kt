@@ -48,6 +48,7 @@ import java.security.cert.CertificateFactory
 import java.security.cert.TrustAnchor
 import java.security.cert.X509Certificate
 import java.security.interfaces.ECPublicKey
+import java.security.interfaces.RSAPublicKey
 import java.util.Base64
 import kotlin.time.Duration.Companion.minutes
 
@@ -63,8 +64,14 @@ import kotlin.time.Duration.Companion.minutes
  * The GRNET anchors, in the dev flavour's `res/raw`:
  *
  * - `grnet_iaca`, the IACA in WEBUILD/pki, for PIDs and for access certificates. The issuer's
- *   document signer is a leaf under it and signs both the PIDs and the issuer's metadata.
- * - `webuild_trust_registry`, the WE BUILD Trust Registry root, for access certificates only.
+ *   document signer is a leaf under it and signs the mdoc PIDs and the issuer's metadata.
+ * - `webuild_trust_registry`, the WE BUILD Trust Registry root, for PIDs and for access
+ *   certificates. GRNET's WE BUILD-onboarded certificate is a leaf under it, the one on the
+ *   Commission's PID providers list, and signs the SD-JWT VC PIDs.
+ * - `grnet_pid_provider`, GRNET's PID provider certificate in the ETSI TS 119 412-6 profile
+ *   (WEBUILD/pki/etsi-profile), for PIDs. Self-signed, so its own anchor; the same key as the
+ *   WE BUILD-onboarded one, and the certificate the issuer signs SD-JWT VC PIDs with once the
+ *   Commission's PID providers list carries it.
  *
  * Revocation is not checked for either, as the dev flavour already does for the EU lists
  * (`relaxPkixRevocation`): Android's PKIX does not fetch a CRL from a certificate's
@@ -78,6 +85,7 @@ internal class GrnetTrust(
     context: Context,
     httpClient: HttpClient,
     loteLocations: SupportedLists<Uri>,
+    private val withGrnetAnchors: Boolean = true,
 ) {
 
     private val disposables = DisposableContainer()
@@ -105,8 +113,9 @@ internal class GrnetTrust(
         run {
             val iaca = context.trustAnchor(R.raw.grnet_iaca)
             val webuild = context.trustAnchor(R.raw.webuild_trust_registry)
+            val pidProvider = context.trustAnchor(R.raw.grnet_pid_provider)
             val anchors: Map<VerificationContext, List<TrustAnchor>> = mapOf(
-                VerificationContext.PID to listOf(iaca),
+                VerificationContext.PID to listOf(iaca, webuild, pidProvider),
                 VerificationContext.WalletRelyingPartyAccessCertificate to listOf(iaca, webuild),
             )
             IsChainTrustedForContext(
@@ -119,9 +128,16 @@ internal class GrnetTrust(
             )
         }
 
-    /** The EU lists, then GRNET's anchors for the contexts it has any for. */
+    /**
+     * The EU lists, then GRNET's anchors for the contexts it has any for; the lists alone
+     * without [withGrnetAnchors].
+     */
     val source: IsChainTrustedForEUDIW<List<X509Certificate>, TrustAnchor> =
-        euLists.recoverWith { context, _ -> grnet.takeIf { it.contains(context) } }
+        if (withGrnetAnchors) {
+            euLists.recoverWith { context, _ -> grnet.takeIf { it.contains(context) } }
+        } else {
+            euLists
+        }
 }
 
 private fun Context.trustAnchor(rawRes: Int): TrustAnchor =
@@ -151,30 +167,41 @@ private fun SupportedLists<LotEMeta<VerificationContext>>.withoutEndEntityProfil
 
 /**
  * What wallet-core's internal `LoteJwtVerifier` checks, and no more: the list's JWS signature
- * against the public key of the `x5c` leaf. Not whether that leaf is trusted. The lists are
- * all ES256; an EC signature arrives as r||s and Java wants it DER-encoded.
+ * against the public key of the `x5c` leaf. Not whether that leaf is trusted. Upstream's lists
+ * are ES256, whose signature arrives as r||s while Java wants it DER-encoded; the Commission's
+ * are RS512, an RSA signature Java takes as it is.
  */
 internal object LoteSignatureVerifier : VerifyJwtSignature {
     override suspend fun invoke(jwt: String): VerifyJwtSignature.Outcome = runCatching {
         val (header, payload, signature) = jwt.split('.').also { require(it.size == 3) }
         val headerJson = Json.parseToJsonElement(String(base64Url(header))).jsonObject
-        val digest = when (val alg = headerJson.getValue("alg").jsonPrimitive.content) {
+        val alg = headerJson.getValue("alg").jsonPrimitive.content
+        val digest = when (alg) {
             "ES256" -> "SHA256withECDSA"
             "ES384" -> "SHA384withECDSA"
             "ES512" -> "SHA512withECDSA"
+            "RS256" -> "SHA256withRSA"
+            "RS384" -> "SHA384withRSA"
+            "RS512" -> "SHA512withRSA"
             else -> error("unsupported alg $alg")
         }
+        val ec = alg.startsWith("ES")
         // x5c is plain base64, unlike the rest of a JWS (RFC 7515 §4.1.6).
         val leaf = CertificateFactory.getInstance("X.509").generateCertificate(
             Base64.getDecoder()
                 .decode(headerJson.getValue("x5c").jsonArray[0].jsonPrimitive.content)
                 .inputStream()
         )
-        require(leaf.publicKey is ECPublicKey) { "x5c leaf key is not EC" }
+        if (ec) {
+            require(leaf.publicKey is ECPublicKey) { "x5c leaf key is not EC" }
+        } else {
+            require(leaf.publicKey is RSAPublicKey) { "x5c leaf key is not RSA" }
+        }
         val verified = Signature.getInstance(digest).run {
             initVerify(leaf.publicKey)
             update("$header.$payload".toByteArray(Charsets.US_ASCII))
-            verify(rawToDer(base64Url(signature)))
+            val bytes = base64Url(signature)
+            verify(if (ec) rawToDer(bytes) else bytes)
         }
         require(verified) { "LoTE JWT signature verification failed" }
         VerifyJwtSignature.Outcome.Verified(jwt)

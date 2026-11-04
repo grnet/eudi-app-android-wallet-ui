@@ -16,6 +16,8 @@
 
 package eu.europa.ec.commonfeature.ui.request
 
+import android.app.Activity
+import android.content.Intent
 import android.net.Uri
 import eu.europa.ec.businesslogic.extension.toUri
 import eu.europa.ec.commonfeature.ui.request.model.RegistrationWarningUi
@@ -111,6 +113,9 @@ sealed class Effect : ViewSideEffect {
 
         data object Pop : Navigation()
         data object Finish : Navigation()
+
+        /** GRNET fork: finish, returning [intent] to whoever started the activity. */
+        data class FinishWithResult(val resultCode: Int, val intent: Intent) : Navigation()
         data class PopTo(
             val screenRoute: String,
         ) : Navigation()
@@ -139,6 +144,13 @@ abstract class RequestViewModel : MviViewModel<Event, State, Effect>() {
      * Called during [NavigationType.Pop].
      * */
     open fun cleanUp() {}
+
+    /**
+     * GRNET fork: what to return to the browser when the user closes the "verifier not trusted"
+     * sheet of a request that came through the Digital Credentials API. Null finishes with no
+     * result, which the page sees as a cancellation.
+     */
+    protected open fun verifierNotTrustedDcApiResult(): Intent? = null
 
     open fun updateData(updatedItems: List<RequestDocumentItemUi>) {
         setState {
@@ -252,7 +264,14 @@ abstract class RequestViewModel : MviViewModel<Event, State, Effect>() {
                 when (viewState.value.sheetContent) {
                     is RequestBottomSheetContent.Warning -> Unit
                     is RequestBottomSheetContent.VerifierNotTrusted -> {
-                        handleOnBack()
+                        val result = verifierNotTrustedDcApiResult()
+                            ?.takeIf { viewState.value.intentAction?.type == IntentType.DC_API }
+                        if (result != null) {
+                            setState { copy(error = null) }
+                            setEffect { Effect.Navigation.FinishWithResult(Activity.RESULT_OK, result) }
+                        } else {
+                            handleOnBack()
+                        }
                     }
                 }
             }

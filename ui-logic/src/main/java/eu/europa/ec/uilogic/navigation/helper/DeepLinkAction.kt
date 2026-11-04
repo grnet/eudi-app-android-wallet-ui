@@ -33,13 +33,15 @@ enum class DeepLinkType(
             BuildConfig.OPENID4VP_SCHEME,
             BuildConfig.EUDI_OPENID4VP_SCHEME,
             BuildConfig.MDOC_OPENID4VP_SCHEME,
-            BuildConfig.HAIP_OPENID4VP_SCHEME
+            BuildConfig.HAIP_OPENID4VP_SCHEME,
+            BuildConfig.EAAP_OPENID4VP_SCHEME
         )
     ),
     CREDENTIAL_OFFER(
         schemas = listOf(
             BuildConfig.CREDENTIAL_OFFER_SCHEME,
-            BuildConfig.CREDENTIAL_OFFER_HAIP_SCHEME
+            BuildConfig.CREDENTIAL_OFFER_HAIP_SCHEME,
+            BuildConfig.CREDENTIAL_OFFER_EAA_SCHEME
         )
     ),
     ISSUANCE(

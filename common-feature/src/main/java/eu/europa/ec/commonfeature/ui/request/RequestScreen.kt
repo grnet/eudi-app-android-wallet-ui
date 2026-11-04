@@ -104,6 +104,7 @@ import eu.europa.ec.uilogic.component.wrap.WrapModalBottomSheet
 import eu.europa.ec.uilogic.component.wrap.WrapSelectableCard
 import eu.europa.ec.uilogic.component.wrap.WrapText
 import eu.europa.ec.uilogic.extension.applyTestTag
+import eu.europa.ec.uilogic.extension.findActivity
 import eu.europa.ec.uilogic.extension.finish
 import eu.europa.ec.uilogic.extension.openUrl
 import eu.europa.ec.uilogic.navigation.helper.IntentAction
@@ -206,6 +207,13 @@ fun RequestScreen(
 
                     is Effect.Navigation.Finish -> {
                         context.finish()
+                    }
+
+                    is Effect.Navigation.FinishWithResult -> {
+                        context.findActivity().run {
+                            setResult(navigationEffect.resultCode, navigationEffect.intent)
+                            finish()
+                        }
                     }
 
                     is Effect.Navigation.OpenUrlExternally -> {

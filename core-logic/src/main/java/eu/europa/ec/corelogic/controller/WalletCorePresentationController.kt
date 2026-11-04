@@ -18,6 +18,11 @@ package eu.europa.ec.corelogic.controller
 
 import android.content.Intent
 import androidx.activity.ComponentActivity
+import androidx.credentials.DigitalCredential
+import androidx.credentials.ExperimentalDigitalCredentialApi
+import androidx.credentials.GetCredentialResponse
+import androidx.credentials.GetDigitalCredentialOption
+import androidx.credentials.provider.PendingIntentHandler
 import eu.europa.ec.authenticationlogic.model.BiometricCrypto
 import eu.europa.ec.businesslogic.controller.storage.PrefKeys
 import eu.europa.ec.businesslogic.extension.safeAsync
@@ -68,6 +73,7 @@ import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
 import org.multipaz.presentment.CredentialPresentmentSetOptionMemberMatch
 import org.multipaz.presentment.CredentialSelection
 import org.multipaz.securearea.KeyUnlockData
@@ -190,6 +196,16 @@ interface WalletCorePresentationController {
     val redirectUri: URI?
 
     val pendingIntent: Intent?
+
+    /**
+     * GRNET fork: the result to return to the browser when the wallet refuses an OpenID4VP
+     * request that came through the Digital Credentials API: an OpenID4VP error response,
+     * `{"protocol": ..., "data": {"error": ..., "error_description": ...}}`, as the credential.
+     * The page receives it and can pass it to the verifier, as the redirect flow posts its error
+     * to the verifier itself; finishing without a result only tells the page the user cancelled.
+     * Null when the presentation is not over the DC API or the request has no OpenID4VP protocol.
+     */
+    fun dcApiErrorResult(error: String, description: String): Intent?
 
     /**
      * Set [PresentationControllerConfig]
@@ -320,6 +336,38 @@ class WalletCorePresentationControllerImpl(
 
     override fun setConfig(config: PresentationControllerConfig) {
         _config = config
+    }
+
+    @OptIn(ExperimentalDigitalCredentialApi::class)
+    override fun dcApiErrorResult(error: String, description: String): Intent? {
+        val startIntent = (_config as? PresentationControllerConfig.DcApi)?.startIntent
+            ?: return null
+        return runCatching {
+            // The protocol the request came in, as the Credential Manager passed it on.
+            val options = PendingIntentHandler.retrieveProviderGetCredentialRequest(startIntent)
+                ?.credentialOptions
+                .orEmpty()
+                .filterIsInstance<GetDigitalCredentialOption>()
+            val protocol = options.firstNotNullOfOrNull { option ->
+                val requests = JSONObject(option.requestJson).optJSONArray("requests")
+                    ?: return@firstNotNullOfOrNull null
+                (0 until requests.length())
+                    .map { requests.getJSONObject(it).optString("protocol") }
+                    .firstOrNull { it.startsWith("openid4vp") }
+            } ?: return null
+            val credential = JSONObject()
+                .put("protocol", protocol)
+                .put(
+                    "data",
+                    JSONObject().put("error", error).put("error_description", description)
+                )
+            Intent().also {
+                PendingIntentHandler.setGetCredentialResponse(
+                    it,
+                    GetCredentialResponse(DigitalCredential(credential.toString()))
+                )
+            }
+        }.getOrNull()
     }
 
     override val events: SharedFlow<TransferEventPartialState> = callbackFlow {

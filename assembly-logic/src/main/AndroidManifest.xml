@@ -189,6 +189,28 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
+                    android:host="${eaapOpenid4vpHost}"
+                    android:scheme="${eaapOpenid4vpScheme}" />
+
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="${credentialOfferEaaHost}"
+                    android:scheme="${credentialOfferEaaScheme}" />
+
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
                     android:host="${openId4VciAuthorizationHost}"
                     android:scheme="${openId4VciAuthorizationScheme}" />
 
