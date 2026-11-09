@@ -29,7 +29,7 @@ import eu.europa.ec.commonfeature.ui.request.transformer.formatPaymentAmount
 import eu.europa.ec.corelogic.controller.SendRequestedDocumentsPartialState
 import eu.europa.ec.corelogic.controller.WalletCorePartialState
 import eu.europa.ec.corelogic.controller.WalletCorePresentationController
-import eu.europa.ec.corelogic.model.AuthenticationData
+import eu.europa.ec.corelogic.model.AuthenticationDataDomain
 import eu.europa.ec.corelogic.model.PresentationTransactionDataDomain
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
@@ -39,7 +39,7 @@ import kotlinx.coroutines.flow.map
 
 sealed class PresentationLoadingObserveResponsePartialState {
     data class UserAuthenticationRequired(
-        val authenticationData: List<AuthenticationData>,
+        val authenticationData: List<AuthenticationDataDomain>,
     ) : PresentationLoadingObserveResponsePartialState()
 
     data class Failure(val error: String) : PresentationLoadingObserveResponsePartialState()

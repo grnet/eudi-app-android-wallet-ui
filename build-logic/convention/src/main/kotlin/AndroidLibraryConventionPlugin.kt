@@ -40,9 +40,6 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
             val config =
                 extensions.create<LibraryPluginConfig>("moduleConfig", LibraryModule.Unspecified)
 
-            val walletScheme = "eudi-wallet"
-            val walletHost = "*"
-
             val eudiOpenId4VpScheme = "eudi-openid4vp"
             val eudiOpenid4VpHost = "*"
 
@@ -96,7 +93,6 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
 
                     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-                    addConfigField("DEEPLINK", "$walletScheme://")
                     addConfigField("EUDI_OPENID4VP_SCHEME", eudiOpenId4VpScheme)
                     addConfigField("MDOC_OPENID4VP_SCHEME", mdocOpenId4VpScheme)
                     addConfigField("OPENID4VP_SCHEME", openId4VpScheme)
@@ -113,8 +109,10 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                     )
                     addConfigField("RQES_SCHEME", rqesScheme)
                     addConfigField("RQES_HOST", rqesHost)
+                    addConfigField("RQES_PATH", rqesPath)
                     addConfigField("RQES_DEEPLINK", "$rqesScheme://$rqesHost$rqesPath")
                     addConfigField("RQES_DOC_RETRIEVAL_SCHEME", rqesDocRetrievalScheme)
+                    addConfigField("RQES_DOC_RETRIEVAL_HOST", rqesDocRetrievalHost)
 
                     // GRNET fork: the dev flavour's backend, as build arguments.
                     //   ./gradlew assembleDevRelease \
@@ -166,9 +164,6 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                         )
                     )
 
-                    // Manifest placeholders for Wallet deepLink
-                    manifestPlaceholders["deepLinkScheme"] = walletScheme
-                    manifestPlaceholders["deepLinkHost"] = walletHost
 
                     // Manifest placeholders used for OpenId4VP
                     manifestPlaceholders["eudiOpenid4vpScheme"] = eudiOpenId4VpScheme

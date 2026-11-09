@@ -552,6 +552,8 @@ val mockedValidMdlWithBasicFieldsRequestMatch: PresentationMatchDomain =
         ),
     )
 
+val mockedUserImageClaimKeys: Set<String> = setOf("portrait", "picture")
+
 const val mockedTransactionQueryId = "query_0"
 
 val mockedTransactionDataApproval = PresentationTransactionDataDomain.QesApproval(

@@ -64,11 +64,13 @@ import eu.europa.ec.uilogic.component.PaymentCardFace
 import eu.europa.ec.uilogic.component.RelyingParty
 import eu.europa.ec.uilogic.component.RelyingPartyDataUi
 import eu.europa.ec.uilogic.component.RelyingPartyLayout
+import eu.europa.ec.uilogic.component.ThemeColorKey
 import eu.europa.ec.uilogic.component.content.ContentHeaderConfig
 import eu.europa.ec.uilogic.component.content.ContentScreen
 import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModePreviews
+import eu.europa.ec.uilogic.component.toColor
 import eu.europa.ec.uilogic.component.utils.DEFAULT_ICON_SIZE
 import eu.europa.ec.uilogic.component.utils.OncePerViewModelEffect
 import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_SMALL
@@ -89,8 +91,8 @@ import eu.europa.ec.uilogic.component.wrap.WrapText
 import eu.europa.ec.uilogic.component.wrap.shadowsAtElevation1
 import eu.europa.ec.uilogic.component.wrap.toTextStyle
 import eu.europa.ec.uilogic.extension.applyTestTag
-import eu.europa.ec.uilogic.extension.cacheUri
 import eu.europa.ec.uilogic.extension.findActivity
+import eu.europa.ec.uilogic.extension.openInBrowser
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -152,8 +154,8 @@ fun DocumentSuccessScreen(
                         )
                     }
 
-                    is Effect.Navigation.DeepLink -> {
-                        context.cacheUri(navigationEffect.link)
+                    is Effect.Navigation.OpenRedirect -> {
+                        navigationEffect.link?.let { link -> context.openInBrowser(link) }
                         navigationEffect.routeToPop?.let {
                             navController.popBackStack(
                                 route = it,
@@ -273,6 +275,19 @@ private fun Content(
                                 overflow = descriptionTextConfig.overflow,
                             )
                         }
+                    }
+
+                    state.warningText?.let { safeWarningText ->
+                        WrapText(
+                            modifier = Modifier.fillMaxWidth(),
+                            text = safeWarningText,
+                            textConfig = TextConfig(
+                                styleKey = TextStyleKey.BodyMedium,
+                                color = ThemeColorKey.Warning.toColor(),
+                                textAlign = TextAlign.Center,
+                                maxLines = Int.MAX_VALUE,
+                            ),
+                        )
                     }
 
                     state.headerConfig.relyingPartyData?.let { safeRelyingPartyData ->

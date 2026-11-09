@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -41,6 +43,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -88,6 +91,7 @@ import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModePreviews
 import eu.europa.ec.uilogic.component.utils.OncePerViewModelEffect
 import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_SMALL
+import eu.europa.ec.uilogic.component.utils.SIZE_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
 import eu.europa.ec.uilogic.component.wrap.BottomSheetTextDataUi
@@ -106,7 +110,7 @@ import eu.europa.ec.uilogic.component.wrap.WrapText
 import eu.europa.ec.uilogic.extension.applyTestTag
 import eu.europa.ec.uilogic.extension.findActivity
 import eu.europa.ec.uilogic.extension.finish
-import eu.europa.ec.uilogic.extension.openUrl
+import eu.europa.ec.uilogic.extension.openInBrowser
 import eu.europa.ec.uilogic.navigation.helper.IntentAction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -149,6 +153,7 @@ fun RequestScreen(
                 buttonsTestTag = TestTag.RequestScreen.BUTTON,
                 warningSection = ConsentWarningSection(
                     registrationWarning = state.registrationWarning,
+                    accessCertificateNotTrustedWarningText = stringResource(R.string.request_access_certificate_not_trusted_warning_text),
                     notVerifiedWarningText = stringResource(R.string.request_registration_not_verified_warning_text),
                     overaskedWarningText = stringResource(R.string.request_registration_overasked_warning_text),
                     acknowledgeText = stringResource(R.string.request_registration_acknowledge_text),
@@ -217,7 +222,7 @@ fun RequestScreen(
                     }
 
                     is Effect.Navigation.OpenUrlExternally -> {
-                        context.openUrl(uri = navigationEffect.url)
+                        context.openInBrowser(uri = navigationEffect.url)
                     }
                 }
             },
@@ -237,6 +242,10 @@ fun RequestScreen(
 
                             is RequestBottomSheetContent.VerifierNotTrusted -> {
                                 Event.BottomSheet.VerifierNotTrusted.Close
+                            }
+
+                            is RequestBottomSheetContent.UserImageConfirmation -> {
+                                Event.BottomSheet.UserImageConfirmation.Cancel
                             }
                         }
                     )
@@ -272,10 +281,12 @@ private fun Content(
 
     // GRNET fork: a TS12 card payment is asked for as a payment, not as data sharing.
     val isPayment = state.requestDataUi.selectedCombination?.transactionData?.payment != null
+    val layoutDirection = LocalLayoutDirection.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(top = paddingValues.calculateTopPadding())
             .then(
                 other = if (rendersDocuments) {
                     Modifier.verticalScroll(rememberScrollState())
@@ -283,7 +294,11 @@ private fun Content(
                     Modifier
                 }
             )
-            .padding(paddingValues),
+            .padding(
+                start = paddingValues.calculateStartPadding(layoutDirection),
+                end = paddingValues.calculateEndPadding(layoutDirection),
+                bottom = paddingValues.calculateBottomPadding(),
+            ),
         verticalArrangement = Arrangement.Top
     ) {
         // Screen Header. GRNET fork: not until the request is known, so that a payment does not
@@ -323,6 +338,14 @@ private fun Content(
                     onPrivacyPolicyClick = { onEventSend(Event.PrivacyPolicyLinkClicked) },
                 )
             }
+        }
+
+        if (state.requestDataUi.requestsUserImage) {
+            UserImageNotice(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = SPACING_SMALL.dp),
+            )
         }
 
         // Screen Main Content.
@@ -492,6 +515,37 @@ private fun CaptionedRelyingParty(
     }
 }
 
+/** Tells the user that the request includes their portrait, which is biometric data. */
+@Composable
+private fun UserImageNotice(
+    modifier: Modifier,
+) {
+    WrapCard(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(SPACING_MEDIUM.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
+        ) {
+            WrapIcon(
+                iconData = AppIcons.Warning,
+                modifier = Modifier.size(SIZE_MEDIUM.dp),
+                customTint = MaterialTheme.colorScheme.warning,
+            )
+            WrapText(
+                modifier = Modifier.weight(1f),
+                text = stringResource(R.string.request_user_image_notice),
+                textConfig = TextConfig(
+                    styleKey = TextStyleKey.BodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = Int.MAX_VALUE,
+                ),
+            )
+        }
+    }
+}
+
 @Composable
 private fun DisplayRequestContent(
     modifier: Modifier,
@@ -511,6 +565,11 @@ private fun DisplayRequestContent(
         is RequestDataUi.NoData -> ErrorInfo(
             modifier = modifier.fillMaxSize(),
             informativeText = stringResource(id = R.string.request_no_data),
+        )
+
+        is RequestDataUi.Declined -> ErrorInfo(
+            modifier = modifier.fillMaxSize(),
+            informativeText = requestDataUi.reason,
         )
 
         is RequestDataUi.Single -> Column(
@@ -727,6 +786,7 @@ private fun DisplayRequestItems(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceDim,
                 ),
+                shouldBringOpenedIntoView = true,
             )
         }
     }
@@ -917,6 +977,29 @@ private fun SheetContent(
                 onPositiveClick = { onEventSent(Event.BottomSheet.VerifierNotTrusted.Close) },
             )
         }
+
+        is RequestBottomSheetContent.UserImageConfirmation -> {
+            DialogBottomSheet(
+                textData = BottomSheetTextDataUi(
+                    title = stringResource(id = R.string.request_bottom_sheet_user_image_title),
+                    message = stringResource(id = R.string.request_bottom_sheet_user_image_message),
+                    positiveButtonText = stringResource(id = R.string.request_bottom_sheet_user_image_primary_button_text),
+                    negativeButtonText = stringResource(id = R.string.request_bottom_sheet_user_image_secondary_button_text),
+                ),
+                leadingIcon = AppIcons.Warning,
+                leadingIconTint = MaterialTheme.colorScheme.warning,
+                onPositiveClick = { onEventSent(Event.BottomSheet.UserImageConfirmation.Share) },
+                onNegativeClick = { onEventSent(Event.BottomSheet.UserImageConfirmation.Cancel) },
+            )
+        }
+    }
+}
+
+@ThemeModePreviews
+@Composable
+private fun UserImageNoticePreview() {
+    PreviewTheme {
+        UserImageNotice(modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -1021,6 +1104,7 @@ private fun ContentMultipleCombinationsPreview() {
 @Composable
 private fun previewRequestDocumentItem(isExpanded: Boolean): RequestDocumentItemUi {
     return RequestDocumentItemUi(
+        userImageItemIds = emptySet(),
         domainPayload = DocumentPayloadDomain(
             docName = "docName",
             docId = "docId",
@@ -1105,23 +1189,23 @@ private fun SheetContentVerifierNotTrustedPreview() {
 
 @ThemeModePreviews
 @Composable
-private fun TransactionDataCollapsedRequestPreview() {
+private fun RequestScreenTransactionDataCollapsedPreview() {
     PreviewTheme {
-        TransactionRequestContentPreview(isExpanded = false)
+        TransactionRequestPreviewContent(isExpanded = false)
     }
 }
 
 @ThemeModePreviews
 @Composable
-private fun TransactionDataExpandedRequestPreview() {
+private fun RequestScreenTransactionDataExpandedPreview() {
     PreviewTheme {
-        TransactionRequestContentPreview(isExpanded = true)
+        TransactionRequestPreviewContent(isExpanded = true)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TransactionRequestContentPreview(isExpanded: Boolean) {
+private fun TransactionRequestPreviewContent(isExpanded: Boolean) {
     Content(
         state = State(
             isLoading = false,
@@ -1150,7 +1234,7 @@ private fun TransactionRequestContentPreview(isExpanded: Boolean) {
 
 @ThemeModePreviews
 @Composable
-private fun TransactionDataMixedCombinationsPreview() {
+private fun RequestScreenTransactionDataMixedCombinationsPreview() {
     PreviewTheme {
         val documents = listOf(previewRequestDocumentItem(isExpanded = false))
         DisplayRequestContent(
@@ -1198,7 +1282,7 @@ private fun TransactionDataMixedCombinationsPreview() {
 
 @ThemeModePreviews
 @Composable
-private fun TransactionDataExpandedCombinationPreview() {
+private fun CombinationContentWithExpandedTransactionDataPreview() {
     PreviewTheme {
         Column(
             modifier = Modifier
@@ -1259,8 +1343,9 @@ private fun TransactionDataSectionPreview(
 }
 
 @LargeTextPreviews
+@ThemeModePreviews
 @Composable
-private fun TransactionDataLongDocumentActionPreview() {
+private fun TransactionDataSectionLongDocumentActionPreview() {
     PreviewTheme {
         val actionId = "preview-long-document/open"
         val section = previewTransactionSection(
@@ -1317,13 +1402,7 @@ private fun previewTransactionData(
     scenario: TransactionDataPreviewScenario,
     isExpanded: Boolean,
 ): RequestTransactionDataUi {
-    val rows = listOf(
-        previewTransactionField(
-            itemId = "$sectionId/framework",
-            label = stringResource(R.string.request_transaction_trust_framework),
-            value = stringResource(R.string.request_transaction_trust_framework_value),
-        ),
-    ) + when (scenario) {
+    val rows = when (scenario) {
         TransactionDataPreviewScenario.Approval -> previewApprovalRows(sectionId = sectionId)
         TransactionDataPreviewScenario.ReferencedQes -> previewReferencedQesRows(sectionId = sectionId)
         TransactionDataPreviewScenario.InlineQes -> previewInlineQesRows(sectionId = sectionId)

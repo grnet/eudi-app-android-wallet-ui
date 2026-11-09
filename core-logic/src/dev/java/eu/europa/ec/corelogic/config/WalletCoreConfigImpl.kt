@@ -34,11 +34,13 @@ import eu.europa.ec.eudi.wallet.dcapi.DCAPIProtocol
 import eu.europa.ec.eudi.wallet.document.CreateDocumentSettings.CredentialPolicy
 import eu.europa.ec.eudi.wallet.issue.openid4vci.OpenId4VciManager
 import eu.europa.ec.eudi.wallet.issue.openid4vci.dpop.DPopConfig
+import eu.europa.ec.eudi.wallet.logging.Logger
 import eu.europa.ec.eudi.wallet.registration.issuer.IssuerRegistrationPolicy
 import eu.europa.ec.eudi.wallet.registration.relyingparty.WrpRegistrationPolicy
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.ClientIdScheme
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.Format
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.TransactionDataType
+import eu.europa.ec.eudi.wallet.trust.PkixRevocationPolicy
 import eu.europa.ec.eudi.wallet.trust.TrustPolicy
 import eu.europa.ec.resourceslogic.R
 import io.ktor.client.HttpClient
@@ -119,6 +121,9 @@ internal class WalletCoreConfigImpl(
         get() {
             if (_config == null) {
                 _config = EudiWalletConfig {
+                    configureLogging(
+                        level = if (BuildConfig.DEBUG) Logger.LEVEL_DEBUG else Logger.LEVEL_INFO
+                    )
                     configureDocumentKeyCreation(
                         userAuthenticationRequired = false,
                         userAuthenticationTimeout = 30.seconds,
@@ -174,7 +179,7 @@ internal class WalletCoreConfigImpl(
                         loteLocations(loteLocations)
                         classifications(classifications)
                         relaxCertificateProfiles()
-                        relaxPkixRevocation()
+                        pkixRevocationPolicy(PkixRevocationPolicy.Disabled)
                     }
 
                     configureIssuerTrust {
@@ -233,6 +238,12 @@ internal class WalletCoreConfigImpl(
             .mapIndexed { index, issuerUrl ->
                 VciConfig(
                     issuerUrl = issuerUrl,
+                    // As upstream: its dev backend serves its logos from eudiw.dev.
+                    logoOrigins = if (issuerUrl == UPSTREAM_DEV_BACKEND) {
+                        listOf("https://eudiw.dev")
+                    } else {
+                        emptyList()
+                    },
                     config = OpenId4VciManager.Config.Builder()
                         .withClientAuthenticationType(
                             OpenId4VciManager.ClientAuthenticationType.AttestationBased(
@@ -289,4 +300,9 @@ internal class WalletCoreConfigImpl(
     // GRNET fork: from the walletProviderUrl build argument.
     override val walletProviderHost: String
         get() = BuildConfig.WALLET_PROVIDER_URL
+
+    private companion object {
+        /** Upstream's dev issuer backend, one of the issuerUrls defaults. */
+        const val UPSTREAM_DEV_BACKEND = "https://dev.issuer-backend.eudiw.dev"
+    }
 }

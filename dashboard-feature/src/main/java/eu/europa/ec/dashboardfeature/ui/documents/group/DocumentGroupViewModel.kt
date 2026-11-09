@@ -32,8 +32,6 @@ import eu.europa.ec.uilogic.navigation.helper.generateComposableArguments
 import eu.europa.ec.uilogic.navigation.helper.generateComposableNavigationLink
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import org.koin.core.annotation.InjectedParam
-import org.koin.core.annotation.KoinViewModel
 
 // GRNET fork: a person's PIDs, grouped as one row in Documents (see PidGroups.kt), listed as the
 // Documents list shows each of them; each opens its details.
@@ -57,10 +55,10 @@ sealed class Effect : ViewSideEffect {
     }
 }
 
-@KoinViewModel
+// Registered in FeatureDashboardModule, with the ids as its parameter.
 class DocumentGroupViewModel(
     private val interactor: DocumentsInteractor,
-    @InjectedParam private val documentIds: String,
+    private val documentIds: String,
 ) : MviViewModel<Event, State, Effect>() {
 
     private val ids: Set<DocumentId>

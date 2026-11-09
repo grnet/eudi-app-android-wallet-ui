@@ -32,7 +32,7 @@ import eu.europa.ec.corelogic.di.getOrCreateKoinScope
 import eu.europa.ec.corelogic.extension.isExpiredRequest
 import eu.europa.ec.corelogic.extension.toClaimPath
 import eu.europa.ec.corelogic.extension.toRegistrationStatusDomain
-import eu.europa.ec.corelogic.model.AuthenticationData
+import eu.europa.ec.corelogic.model.AuthenticationDataDomain
 import eu.europa.ec.corelogic.model.PresentationCombinationDomain
 import eu.europa.ec.corelogic.model.PresentationMatchDomain
 import eu.europa.ec.corelogic.model.PresentationSelectionDomain
@@ -110,7 +110,7 @@ sealed class TransferEventPartialState {
 sealed class CheckKeyUnlockPartialState {
     data class Failure(val error: String) : CheckKeyUnlockPartialState()
     data class UserAuthenticationRequired(
-        val authenticationData: List<AuthenticationData>,
+        val authenticationData: List<AuthenticationDataDomain>,
     ) : CheckKeyUnlockPartialState()
 
     data object RequestIsReadyToBeSent : CheckKeyUnlockPartialState()
@@ -131,7 +131,7 @@ sealed class ResponseReceivedPartialState {
 
 sealed class WalletCorePartialState {
     data class UserAuthenticationRequired(
-        val authenticationData: List<AuthenticationData>,
+        val authenticationData: List<AuthenticationDataDomain>,
     ) : WalletCorePartialState()
 
     data class Failure(val error: String) : WalletCorePartialState()
@@ -469,7 +469,7 @@ class WalletCorePresentationControllerImpl(
                 keyUnlockDataByCredentialId.clear()
                 ScaKeyAuthentication.clear()
 
-                val authenticationData = mutableListOf<AuthenticationData>()
+                val authenticationData = mutableListOf<AuthenticationDataDomain>()
 
                 // GRNET fork: also when only some keys require it, such as a payment card's
                 // (WalletCoreConfig.userAuthenticatedKeyTypes); only those are prompted for.
@@ -489,7 +489,7 @@ class WalletCorePresentationControllerImpl(
                         val cryptoObject = kud?.getCryptoObjectForSigning()
 
                         authenticationData.add(
-                            AuthenticationData(
+                            AuthenticationDataDomain(
                                 crypto = BiometricCrypto(cryptoObject),
                                 onAuthenticationSuccess = {
                                     if (kud != null) {

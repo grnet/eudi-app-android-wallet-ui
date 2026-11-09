@@ -20,6 +20,7 @@ import eu.europa.ec.businesslogic.provider.UuidProvider
 import eu.europa.ec.commonfeature.extension.nameWhenShared
 import eu.europa.ec.commonfeature.extension.toExpandableListItems
 import eu.europa.ec.commonfeature.extension.toSelectiveExpandableListItems
+import eu.europa.ec.commonfeature.extension.userImageItemIds
 import eu.europa.ec.commonfeature.ui.request.model.DocumentFormatDomain
 import eu.europa.ec.commonfeature.ui.request.model.DocumentPayloadDomain
 import eu.europa.ec.commonfeature.ui.request.model.RequestCombinationUi
@@ -53,6 +54,8 @@ object RequestTransformer {
      * [claimsAreSelectable] = checkbox vs read-only leaves.
      * [overaskedClaims] = the request's claims not covered by the relying party's registration;
      * their rows get the "not registered" mark.
+     * [userImageClaimKeys] = the claims that hold a picture of the holder
+     * ([eu.europa.ec.uilogic.config.ConfigUILogic.userImageClaimKeys]).
      * [paymentCards] = GRNET fork: the payment cards among [storageDocuments], by document id,
      * shown as cards.
      */
@@ -63,6 +66,7 @@ object RequestTransformer {
         combinationsDomain: List<PresentationCombinationDomain>,
         claimsAreSelectable: Boolean,
         overaskedClaims: List<OveraskedClaimDomain>,
+        userImageClaimKeys: Set<String>,
         paymentCards: Map<String, PaymentCardUi> = emptyMap(),
     ): Result<List<RequestCombinationUi>> {
         return runCatching {
@@ -83,6 +87,7 @@ object RequestTransformer {
                     documentsDomain = documentsDomain,
                     resourceProvider = resourceProvider,
                     claimsAreSelectable = claimsAreSelectable,
+                    userImageClaimKeys = userImageClaimKeys,
                     paymentCards = paymentCards,
                 )
                 val representedDomainMatches = representedMatches.map { (match, _) -> match }
@@ -172,12 +177,15 @@ object RequestTransformer {
      * Builds the request-screen rows.
      * [claimsAreSelectable] = selectable (checkbox) vs read-only
      * leaves; the document headers are the same either way.
+     * [userImageClaimKeys] = the claims rendered as images; their row ids fill
+     * [RequestDocumentItemUi.userImageItemIds].
      * [paymentCards] = GRNET fork: payment cards by document id, named by their own name.
      */
     fun transformToUiItems(
         documentsDomain: List<DocumentPayloadDomain>,
         resourceProvider: ResourceProvider,
         claimsAreSelectable: Boolean,
+        userImageClaimKeys: Set<String>,
         paymentCards: Map<String, PaymentCardUi> = emptyMap(),
     ): List<RequestDocumentItemUi> {
         return documentsDomain.map { documentDomain ->
@@ -204,12 +212,13 @@ object RequestTransformer {
                         )
                     ),
                     nestedItems = if (claimsAreSelectable) {
-                        documentDomain.toSelectiveExpandableListItems()
+                        documentDomain.toSelectiveExpandableListItems(userImageClaimKeys = userImageClaimKeys)
                     } else {
-                        documentDomain.toExpandableListItems()
+                        documentDomain.toExpandableListItems(userImageClaimKeys = userImageClaimKeys)
                     },
                     isExpanded = false,
                 ),
+                userImageItemIds = documentDomain.userImageItemIds(userImageClaimKeys = userImageClaimKeys),
             )
         }
     }

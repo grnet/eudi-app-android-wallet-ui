@@ -308,6 +308,8 @@ class DocumentsInteractorImpl(
 
                     val documentIsRevoked =
                         walletCoreDocumentsController.isDocumentRevoked(document.id)
+                    val documentIsSuspended = documentIsRevoked &&
+                            walletCoreDocumentsController.isDocumentSuspended(document.id)
 
                     when (document) {
                         is IssuedDocument -> {
@@ -363,7 +365,13 @@ class DocumentsInteractorImpl(
 
                             val supportingContentData = when {
                                 documentIsRevoked -> ListItemSupportingContentDataUi.Text(
-                                    text = resourceProvider.getString(R.string.dashboard_document_revoked),
+                                    text = resourceProvider.getString(
+                                        if (documentIsSuspended) {
+                                            R.string.dashboard_document_suspended
+                                        } else {
+                                            R.string.dashboard_document_revoked
+                                        }
+                                    ),
                                     textColorKey = ThemeColorKey.Error,
                                 )
 
@@ -424,7 +432,10 @@ class DocumentsInteractorImpl(
                                         leadingContentData = paymentCard?.let {
                                             ListItemLeadingContentDataUi.PaymentCard(card = it)
                                         } ?: ListItemLeadingContentDataUi.AsyncImage(
-                                            imageUrl = localizedIssuerMetadata?.logo?.uri.toString(),
+                                            imageUrl = walletCoreDocumentsController.getIssuerLogo(
+                                                document,
+                                                userLocale
+                                            )?.toString().orEmpty(),
                                             contentDescription = resourceProvider.getString(R.string.content_description_issuer_logo_icon),
                                             errorImage = AppIcons.Id,
                                         ),
@@ -480,7 +491,10 @@ class DocumentsInteractorImpl(
                                             textColorKey = ThemeColorKey.Warning,
                                         ),
                                         leadingContentData = ListItemLeadingContentDataUi.AsyncImage(
-                                            imageUrl = localizedIssuerMetadata?.logo?.uri.toString(),
+                                            imageUrl = walletCoreDocumentsController.getIssuerLogo(
+                                                document,
+                                                userLocale
+                                            )?.toString().orEmpty(),
                                             contentDescription = resourceProvider.getString(R.string.content_description_issuer_logo_icon),
                                             errorImage = AppIcons.Id,
                                         ),
