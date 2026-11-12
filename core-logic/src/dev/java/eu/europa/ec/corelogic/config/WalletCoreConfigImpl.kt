@@ -47,6 +47,7 @@ import eu.europa.ec.eudi.wallet.trust.TrustPolicy
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import io.ktor.client.HttpClient
+import java.security.cert.X509Certificate
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -106,6 +107,16 @@ internal class WalletCoreConfigImpl(
         )
     )
 
+    // GRNET fork: what the trusted lists themselves must be signed under, which wallet-core
+    // checks since 0.32 and GrnetTrust checks the same way. Upstream's lists are signed under its
+    // PID Issuer CA 02, the Commission's under CommisSign - 2, under the Commission's Root CA - 2.
+    private val loteSignerAnchors: List<X509Certificate> by lazy {
+        when (BuildConfig.TRUST_LISTS) {
+            "ec" -> listOf(R.raw.ec_commissign_2, R.raw.ec_root_ca_2)
+            else -> listOf(R.raw.pidissuerca02_eu)
+        }.map { resourceProvider.getX509CertificateFromRaw(it) }
+    }
+
     // From Koin rather than the constructor, which the demo flavour's
     // WalletCoreConfigImpl shares through provideWalletCoreConfig.
     private val grnetTrust by lazy {
@@ -113,6 +124,7 @@ internal class WalletCoreConfigImpl(
             context = get<Context>(),
             httpClient = get<HttpClient>(),
             loteLocations = loteLocations,
+            loteSignerAnchors = loteSignerAnchors,
             withGrnetAnchors = BuildConfig.GRNET_TRUST_ANCHORS,
         )
     }
@@ -182,9 +194,7 @@ internal class WalletCoreConfigImpl(
                     configureEtsiTrust {
                         loteLocations(loteLocations)
                         classifications(classifications)
-                        loteSignerTrustAnchors(
-                            resourceProvider.getX509CertificateFromRaw(R.raw.pidissuerca02_eu)
-                        )
+                        loteSignerTrustAnchors(*loteSignerAnchors.toTypedArray())
                         relaxCertificateProfiles()
                         pkixRevocationPolicy(PkixRevocationPolicy.Disabled)
                     }

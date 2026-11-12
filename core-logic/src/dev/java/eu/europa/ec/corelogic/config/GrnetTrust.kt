@@ -26,6 +26,7 @@ import eu.europa.ec.eudi.etsi119602.consultation.VerifyJwtSignature
 import eu.europa.ec.eudi.etsi119602.consultation.eu
 import eu.europa.ec.eudi.etsi119602.consultation.eudiwJvm
 import eu.europa.ec.eudi.etsi119602.datamodel.Uri
+import eu.europa.ec.eudi.etsi1196x2.consultation.CertificationChainValidation
 import eu.europa.ec.eudi.etsi1196x2.consultation.DisposableContainer
 import eu.europa.ec.eudi.etsi1196x2.consultation.GetTrustAnchors
 import eu.europa.ec.eudi.etsi1196x2.consultation.IsChainTrustedForContext
@@ -33,10 +34,14 @@ import eu.europa.ec.eudi.etsi1196x2.consultation.IsChainTrustedForEUDIW
 import eu.europa.ec.eudi.etsi1196x2.consultation.NonEmptyList
 import eu.europa.ec.eudi.etsi1196x2.consultation.SensitiveApi
 import eu.europa.ec.eudi.etsi1196x2.consultation.SupportedLists
+import eu.europa.ec.eudi.etsi1196x2.consultation.ValidateCertificateChain
+import eu.europa.ec.eudi.etsi1196x2.consultation.ValidateCertificateChainUsingDirectTrustJvm
 import eu.europa.ec.eudi.etsi1196x2.consultation.ValidateCertificateChainUsingPKIXJvm
 import eu.europa.ec.eudi.etsi1196x2.consultation.VerificationContext
+import eu.europa.ec.eudi.etsi1196x2.consultation.or
 import eu.europa.ec.resourceslogic.R
 import io.ktor.client.HttpClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.io.files.Path
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -85,6 +90,7 @@ internal class GrnetTrust(
     context: Context,
     httpClient: HttpClient,
     loteLocations: SupportedLists<Uri>,
+    loteSignerAnchors: List<X509Certificate>,
     private val withGrnetAnchors: Boolean = true,
 ) {
 
@@ -97,7 +103,11 @@ internal class GrnetTrust(
     private val euLists = ProvisionTrustAnchorsFromLoTEs.eudiwJvm(
         loadLoTEAndPointers = LoadLoTEAndPointers(
             constraints = LoadLoTEAndPointers.Constraints.DoNotLoadOtherPointers,
-            verifyJwtSignature = LoteSignatureVerifier,
+            // The lists' signers checked against the same anchors as wallet-core's, the same way.
+            verifyJwtSignature = LoteSignatureVerifier(
+                signerAnchors = NonEmptyList(loteSignerAnchors.map { TrustAnchor(it, null) }),
+                validateSigner = ValidateCertificateChainUsingDirectTrustJvm or pkix,
+            ),
             // Its own directory: wallet-core's pipeline caches the same lists in lote-cache.
             loadLoTE = LoadSingleLoTEWithFileCache(
                 cacheDirectory = Path(context.cacheDir.path, "lote-cache-grnet"),
@@ -166,13 +176,25 @@ private fun SupportedLists<LotEMeta<VerificationContext>>.withoutEndEntityProfil
 }
 
 /**
- * What wallet-core's internal `LoteJwtVerifier` checks, and no more: the list's JWS signature
- * against the public key of the `x5c` leaf. Not whether that leaf is trusted. Upstream's lists
- * are ES256, whose signature arrives as r||s while Java wants it DER-encoded; the Commission's
- * are RS512, an RSA signature Java takes as it is.
+ * What wallet-core's internal `LoteJwtVerifier` checks (since wallet-core 0.32), and no more: the
+ * `x5c` leaf is valid today and chains to one of [signerAnchors], and the list's JWS signature
+ * verifies against the leaf's public key. Upstream's lists are ES256, whose signature arrives as
+ * r||s while Java wants it DER-encoded; the Commission's are RS512, an RSA signature Java takes as
+ * it is.
  */
-internal object LoteSignatureVerifier : VerifyJwtSignature {
-    override suspend fun invoke(jwt: String): VerifyJwtSignature.Outcome = runCatching {
+internal class LoteSignatureVerifier(
+    private val signerAnchors: NonEmptyList<TrustAnchor>,
+    private val validateSigner: ValidateCertificateChain<List<X509Certificate>, TrustAnchor>,
+) : VerifyJwtSignature {
+    override suspend fun invoke(jwt: String): VerifyJwtSignature.Outcome = try {
+        verifyLote(jwt)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+        VerifyJwtSignature.Outcome.NotVerified(e)
+    }
+
+    private suspend fun verifyLote(jwt: String): VerifyJwtSignature.Outcome {
         val (header, payload, signature) = jwt.split('.').also { require(it.size == 3) }
         val headerJson = Json.parseToJsonElement(String(base64Url(header))).jsonObject
         val alg = headerJson.getValue("alg").jsonPrimitive.content
@@ -187,11 +209,18 @@ internal object LoteSignatureVerifier : VerifyJwtSignature {
         }
         val ec = alg.startsWith("ES")
         // x5c is plain base64, unlike the rest of a JWS (RFC 7515 §4.1.6).
-        val leaf = CertificateFactory.getInstance("X.509").generateCertificate(
-            Base64.getDecoder()
-                .decode(headerJson.getValue("x5c").jsonArray[0].jsonPrimitive.content)
-                .inputStream()
-        )
+        val certificateFactory = CertificateFactory.getInstance("X.509")
+        val chain = headerJson.getValue("x5c").jsonArray.map {
+            certificateFactory.generateCertificate(
+                Base64.getDecoder().decode(it.jsonPrimitive.content).inputStream()
+            ) as X509Certificate
+        }
+        val leaf = chain.first()
+        leaf.checkValidity()
+        val validation = validateSigner(chain, signerAnchors)
+        if (validation is CertificationChainValidation.NotTrusted) {
+            return VerifyJwtSignature.Outcome.NotVerified(validation.cause)
+        }
         if (ec) {
             require(leaf.publicKey is ECPublicKey) { "x5c leaf key is not EC" }
         } else {
@@ -204,8 +233,8 @@ internal object LoteSignatureVerifier : VerifyJwtSignature {
             verify(if (ec) rawToDer(bytes) else bytes)
         }
         require(verified) { "LoTE JWT signature verification failed" }
-        VerifyJwtSignature.Outcome.Verified(jwt)
-    }.getOrElse { VerifyJwtSignature.Outcome.NotVerified(it) }
+        return VerifyJwtSignature.Outcome.Verified(jwt)
+    }
 
     private fun base64Url(s: String): ByteArray = Base64.getUrlDecoder().decode(s)
 

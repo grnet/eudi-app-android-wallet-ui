@@ -1144,7 +1144,7 @@ class WalletCoreDocumentsControllerImpl(
         }
         if (type == null || type !in walletCoreConfig.userAuthenticatedKeyTypes) return null
         return {
-            setUseStrongBox(eudiWallet.config.useStrongBoxForKeys)
+            setUseStrongBox(eudiWallet.keyProtectionState.useStrongBox)
             setUserAuthenticationRequired(
                 required = true,
                 timeout = Duration.ZERO,

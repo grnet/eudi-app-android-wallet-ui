@@ -531,7 +531,7 @@ class WalletCorePresentationControllerImpl(
     private suspend fun keyRequiresUserAuthentication(
         selection: PresentationSelectionDomain,
     ): Boolean {
-        if (eudiWallet.config.userAuthenticationRequired) return true
+        if (eudiWallet.keyProtectionState.userAuthenticationRequired) return true
         return runCatching {
             val kud = eudiWallet.getDefaultKeyUnlockData(documentId = selection.documentId)
             kud?.secureArea?.getKeyInfo(kud.alias)?.isUserAuthenticationRequired == true
