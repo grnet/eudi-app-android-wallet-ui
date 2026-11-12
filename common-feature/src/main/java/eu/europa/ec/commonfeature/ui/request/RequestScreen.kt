@@ -16,6 +16,7 @@
 
 package eu.europa.ec.commonfeature.ui.request
 
+import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -588,6 +589,7 @@ private fun DisplayRequestContent(
                 modifier = Modifier.fillMaxWidth(),
                 combination = requestDataUi.combination,
                 claimsAreSelectable = claimsAreSelectable,
+                isInteractive = true,
                 transactionTitleStartPadding = 0.dp,
                 showRequestedDataTitle = isPayment,
                 onClaimClick = onClaimClick,
@@ -638,8 +640,13 @@ private fun RequestedDataSectionTitle(
     )
 }
 
+/**
+ * The request's options as selectable cards. Only the selected option's content takes clicks; the
+ * others are read-only until the user selects them.
+ */
+@VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
 @Composable
-private fun DisplayCombinationCards(
+internal fun DisplayCombinationCards(
     modifier: Modifier,
     requestDataUi: RequestDataUi.Multiple,
     claimsAreSelectable: Boolean,
@@ -656,6 +663,7 @@ private fun DisplayCombinationCards(
         verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp),
     ) {
         requestDataUi.combinations.forEachIndexed { index, combination ->
+            val isSelected = index == requestDataUi.selectedIndex
             WrapSelectableCard(
                 modifier = Modifier.fillMaxWidth(),
                 title = stringResource(
@@ -663,13 +671,14 @@ private fun DisplayCombinationCards(
                     index + 1,
                     requestDataUi.combinations.size,
                 ),
-                isSelected = index == requestDataUi.selectedIndex,
+                isSelected = isSelected,
                 onSelected = { onCombinationSelected(index) },
             ) {
                 CombinationContent(
                     modifier = Modifier.fillMaxWidth(),
                     combination = combination,
                     claimsAreSelectable = claimsAreSelectable,
+                    isInteractive = isSelected,
                     transactionTitleStartPadding = SPACING_SMALL.dp,
                     onClaimClick = onClaimClick,
                     onCredentialExpansionChange = onCredentialExpansionChange,
@@ -683,11 +692,18 @@ private fun DisplayCombinationCards(
     }
 }
 
+/**
+ * A combination's documents and transaction data.
+ *
+ * @param isInteractive false for an option that is not selected: its rows then take no clicks, so
+ * accessibility services cannot act on rows that the option card keeps from touch.
+ */
 @Composable
 private fun CombinationContent(
     modifier: Modifier,
     combination: RequestCombinationUi,
     claimsAreSelectable: Boolean,
+    isInteractive: Boolean,
     transactionTitleStartPadding: Dp,
     onClaimClick: (String) -> Unit,
     onCredentialExpansionChange: (String) -> Unit,
@@ -702,6 +718,7 @@ private fun CombinationContent(
             modifier = Modifier.fillMaxWidth(),
             requestDocuments = combination.documents,
             claimsAreSelectable = claimsAreSelectable,
+            isInteractive = isInteractive,
             onClaimClick = onClaimClick,
             onExpansionChange = onCredentialExpansionChange,
             hideClaimValues = hideClaimValues,
@@ -713,6 +730,7 @@ private fun CombinationContent(
                 modifier = Modifier.fillMaxWidth(),
                 transactionData = safeTransactionData,
                 titleStartPadding = transactionTitleStartPadding,
+                isInteractive = isInteractive,
                 onExpansionChange = { itemId ->
                     onTransactionExpansionChange(safeTransactionData.details.header.itemId, itemId)
                 },
@@ -748,6 +766,7 @@ private fun DisplayRequestItems(
     modifier: Modifier,
     requestDocuments: List<RequestDocumentItemUi>,
     claimsAreSelectable: Boolean,
+    isInteractive: Boolean,
     onClaimClick: (String) -> Unit,
     onExpansionChange: (String) -> Unit,
     hideClaimValues: Boolean = false,
@@ -770,13 +789,15 @@ private fun DisplayRequestItems(
                 header = requestDocument.headerUi.header,
                 data = requestDocument.headerUi.nestedItems,
                 isItemClickable = { true },
-                onItemClick = if (claimsAreSelectable) {
+                onItemClick = if (claimsAreSelectable && isInteractive) {
                     { item -> onClaimClick(item.itemId) }
                 } else {
                     null
                 },
-                onExpandedChange = { expandedItem ->
-                    onExpansionChange(expandedItem.itemId)
+                onExpandedChange = if (isInteractive) {
+                    { expandedItem -> onExpansionChange(expandedItem.itemId) }
+                } else {
+                    null
                 },
                 isExpanded = requestDocument.headerUi.isExpanded,
                 throttleClicks = false,
@@ -850,6 +871,7 @@ private fun TransactionDataSection(
     modifier: Modifier,
     transactionData: RequestTransactionDataUi,
     titleStartPadding: Dp,
+    isInteractive: Boolean,
     onExpansionChange: (String) -> Unit,
     onDocumentClick: (String) -> Unit,
     paymentRequester: (@Composable () -> Unit)? = null,
@@ -888,8 +910,16 @@ private fun TransactionDataSection(
             header = transactionData.details.header,
             data = transactionData.details.nestedItems,
             isExpanded = transactionData.details.isExpanded,
-            onExpandedChange = { item -> onExpansionChange(item.itemId) },
-            onItemClick = { item -> onDocumentClick(item.itemId) },
+            onExpandedChange = if (isInteractive) {
+                { item -> onExpansionChange(item.itemId) }
+            } else {
+                null
+            },
+            onItemClick = if (isInteractive) {
+                { item -> onDocumentClick(item.itemId) }
+            } else {
+                null
+            },
             isItemClickable = { item -> item.itemId in transactionData.documentUrlsByItemId },
             collapsedMainContentVerticalPadding = SPACING_MEDIUM.dp,
             expandedMainContentVerticalPadding = SPACING_MEDIUM.dp,
@@ -1308,6 +1338,7 @@ private fun CombinationContentWithExpandedTransactionDataPreview() {
                         ),
                     ),
                     claimsAreSelectable = false,
+                    isInteractive = true,
                     transactionTitleStartPadding = SPACING_SMALL.dp,
                     onClaimClick = {},
                     onCredentialExpansionChange = {},
@@ -1336,6 +1367,7 @@ private fun TransactionDataSectionPreview(
                 isExpanded = true,
             ),
             titleStartPadding = 0.dp,
+            isInteractive = true,
             onExpansionChange = {},
             onDocumentClick = {},
         )
@@ -1376,6 +1408,7 @@ private fun TransactionDataSectionLongDocumentActionPreview() {
                 .padding(SPACING_MEDIUM.dp),
             transactionData = section,
             titleStartPadding = 0.dp,
+            isInteractive = true,
             onExpansionChange = {},
             onDocumentClick = {},
         )

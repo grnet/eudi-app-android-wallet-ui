@@ -73,6 +73,9 @@ The resulting app build variants are:
 * `demoDebug`
 * `demoRelease`
 
+The baseline-profile plugin also adds `*BenchmarkRelease` and `*NonMinifiedRelease` variants, used
+only for profiling.
+
 To select a variant in Android Studio, open **Build > Select Build Variant** and choose the active
 variant for the `:app` module. Android Studio will apply the matching variants to the dependent
 modules.
@@ -102,6 +105,8 @@ Run tests and checks:
 .\gradlew.bat lint
 .\gradlew.bat dependencyCheckAnalyze
 ```
+
+`dependencyCheckAnalyze` reads `NVD_API_KEY` from `local.properties` or the environment.
 
 APK outputs are created under:
 
@@ -166,8 +171,11 @@ To test against services running on your own workstation, start the required ser
 * [Issuer](https://github.com/eu-digital-identity-wallet/eudi-srv-web-issuing-eudiw-py)
 * [Web Verifier UI](https://github.com/eu-digital-identity-wallet/eudi-web-verifier)
 * [Web Verifier Endpoint](https://github.com/eu-digital-identity-wallet/eudi-srv-web-verifier-endpoint-23220-4-kt)
+* a wallet-provider service, or keep the hosted `walletProviderHost`
 
-Then update the selected flavor's `WalletCoreConfigImpl.kt`.
+Then update the selected flavor's `WalletCoreConfigImpl.kt`. Keep the flavor's other settings
+(for example `logoOrigins` and `withSupportedCredentialReusePolicies`), which the short example below
+leaves out.
 
 For an emulator, use `10.0.2.2` to reach services running on the host machine. Include the scheme
 and port used by the local service:
@@ -195,7 +203,8 @@ override val walletProviderHost: String
     get() = "https://10.0.2.2:8444"
 ```
 
-For a physical device, use the host computer's LAN IP address instead:
+For a physical device, use the host computer's LAN IP address instead, and add that address (or the
+development DNS name) as a `<domain>` in the debug network security config described below:
 
 ```kotlin
 issuerUrl = "https://192.168.1.50:8443"
@@ -211,8 +220,10 @@ by reference unless it is hosted on that issuer's `https` origin.
 
 The reference trust configuration also applies to local services. The issuer's metadata must be
 signed with a certificate on the `wrpacProviders` list, and a PID issuer must be on `pidProviders`.
-The hosted development lists do not contain your services, so point `loteLocations` at lists that do
-(see [CONFIGURATION.md](CONFIGURATION.md#general-configuration)). With *Check Registration
+The hosted development lists do not contain your services, so point `loteLocations` at lists that do,
+and pass the certificate that signs those lists, or a CA that issues only list-signing certificates, to
+`loteSignerTrustAnchors(...)` (see
+[CONFIGURATION.md](CONFIGURATION.md#general-configuration)). With *Check Registration
 Certificates* on, the issuer also needs a registration certificate on `wrprcProviders`.
 
 The wallet opens a verifier's redirect only if it is an `https` URL, and loads issuer logos only over
